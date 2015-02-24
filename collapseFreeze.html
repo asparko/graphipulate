@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.circles {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+.circles .selected {
+  stroke: black;
+}
+
+.collapsed {
+  stroke: white;  
+}
+
+.hidden{
+
+}
+
+.link {
+  stroke: #999;
+  stroke-opacity: .6;
+}
+
+.brush .extent {
+  fill-opacity: .1;
+  stroke: #fff;
+  shape-rendering: crispEdges;
+}
+
+</style>
+
+<body>
+
+<div id="collapse">
+    <input name="collapseButton" 
+           type="button" 
+           value="Collapse Selection"  />
+</div>
+
+<div id="freeze">
+    <input name="freezeButton" 
+           type="button" 
+           value="Freeze Selection"  />
+</div>
+
+<div id="unfreeze">
+    <input name="unfreezeButton" 
+           type="button" 
+           value="Unfreeze Selection"  />
+</div>
+
+<script type="text/javascript" src="d3/d3.js"></script>
+
+<script>
+
+var width = 960,
+    height = 500,
+    shiftKey,
+    graph;
+
+//built in D3 color palatte
+var color = d3.scale.category20();
+
+var radiusScale = d3.scale.log();
+
+var force = d3.layout.force()
+    .on("tick",tick)
+    .charge(-200)
+    .linkDistance(100)
+    .size([width, height]);
+
+var arc = d3.svg.arc();
+
+var pie = d3.layout.pie().padAngle(.02);
+
+var svg = d3.select("body")
+      .on("keydown.brush", keydown)
+      .on("keyup.brush", keyup)
+      .each(function() { this.focus(); })
+    .append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+var link,
+    circles,
+    pies,
+    pies2,
+    numberPies=0,
+    currPieName=0,
+    interLinks = [],
+    interLinks_orig =[],
+    toCollapse = [],
+    toFreeze = [],
+    toUnfreeze = [],
+    pieData = [],
+	pieNames = [], //easily searchable array of pieNames that will match the ordering of pieData for easy deletion of pies
+    insideLinks = [],   
+    links2 = [],
+    links2b = [];
+
+
+var brush = svg.append("g")
+    .datum(function() { return {selected: false, previouslySelected: false}; })
+    .attr("class", "brush");
+
+d3.json("graphDataBig.json", function(error, json) {
+    graph = json; //need to give it a global variable name so can use it in update()
+    graph.nodes.forEach(function(d) { 
+    		d.collapsed=0; 
+    		d.selected=0;
+    		d.previouslySelected=0;
+    		d.inPie=-1;
+    	}); 
+    graph.links.forEach(function(d) { 
+    		d.collapsed=0; 
+    		d.selected=0;
+    	}); 
+
+    radiusScale.domain([1,graph.nodes.length])
+            .range([5,40]);
+    
+    update();
+});
+
+
+function update(){
+    var circleData = graph.nodes.filter(function(d) {return d.collapsed==0; });
+    var hiddenData = graph.nodes.filter(function(d) {return d.collapsed==1; });
+    var linkRegData = graph.links.filter(function(d) {return d.collapsed==0; });
+    var allLinks = linkRegData.concat(interLinks);
+    var allNodes = circleData.concat(pieData); //pieData filled/emptied with brush selection
+
+    //Define functionality of freeze button
+    d3.select("#freeze")
+        .on("click",function() {
+            toFreeze = circleData.filter(function(d) {return d.selected==1; });
+            toFreeze.forEach(function(d){
+                d.fixed=true;
+            });
+    });
+
+    //Define functionality of unfreeze button
+    d3.select("#unfreeze")
+        .on("click",function() {
+            toUnfreeze = circleData.filter(function(d) {return d.selected==1; });
+            toUnfreeze.forEach(function(d){
+                d.fixed=false;
+                tick();
+                force.resume();
+            });
+    });
+
+
+    //Define functionality of collapse button
+    d3.select("#collapse")
+        .on("click", function() {
+            toCollapse = circleData.filter(function(d) {return d.selected==1; });
+            var loc = findCenter(toCollapse);
+            toCollapse.forEach(function(d){
+              d.collapsed=1;
+              d.inPie=currPieName; //keeps track of which pie the collapsed nodes are in 
+            });
+
+            var grp0 = toCollapse.filter(function(d) {return d.group==0; });
+            var grp1 = toCollapse.filter(function(d) {return d.group==1; });
+
+            var newPie = {
+                    'size': toCollapse.length, //num of nodes in collapsed group
+                    'name': currPieName,
+                    'group': 2,
+                    'collapsed': 2,
+                    'colors': [grp0.length, grp1.length],
+                    'x': loc[0],
+                    'y': loc[1]
+                };
+            pieData.push(newPie);
+            pieNames.push(currPieName);
+
+
+            //Collapse links within selected group
+            insideLinks = graph.links.filter(function(d){
+                return d.source.selected==1 && d.target.selected==1; //find all links within selected group
+            });
+            insideLinks.forEach(function(d){
+                d.collapsed = 1;
+                d.inPie = currPieName; //keep track of which pie the collapsed links are part of
+            });
+
+            //Find inter-group links
+            interLinks_orig = graph.links.filter(function(d){
+                return d.source.inPie !== d.target.inPie; //find all links between groups
+            });
+
+            interLinks = deepCopy(interLinks_orig);
+            
+            interLinks_orig.forEach(function(d){
+                d.collapsed=1;
+            });
+
+            //undo deep copy for regular nodes; replace others with new pie nodes
+            for (i=0; i<interLinks.length; i++){
+                interLinks[i].collapsed=2;
+                //if source is selected, set it to newPie
+                //if source is not selected, set to other pie if inPie is already set
+                if (interLinks[i].source.selected==1)
+                    interLinks[i].source = newPie;
+                else if (interLinks[i].source.inPie !== -1){
+                	var ind = pieNames.indexOf(interLinks[i].source.inPie);
+                	interLinks[i].source = pieData[ind];
+                }
+                else if (interLinks[i].source.inPie == -1)
+                	interLinks[i].source = interLinks_orig[i].source;
+
+                //do same for targets
+                if (interLinks[i].target.selected==1)
+                    interLinks[i].target = newPie;
+                else if (interLinks[i].target.inPie !== -1){
+                	var ind = pieNames.indexOf(interLinks[i].target.inPie);
+                	interLinks[i].target = pieData[ind];
+                }
+                else if (interLinks[i].target.inPie == -1)
+                	interLinks[i].target = interLinks_orig[i].target;	
+            };
+            
+            toCollapse.forEach(function(d){
+              d.selected=0;
+              d.previouslySelected=0;
+            });
+
+            numberPies++;
+            currPieName++;  
+              
+            update();
+                
+        }); //END of collapse button functionality
+
+    //GENERATE FDL *****************************************************
+    force
+        .nodes(allNodes)
+        .links(allLinks)
+        .start();
+
+
+    //UPDATE LINKS *****************************************************
+    link = svg.selectAll(".link")
+        .data(allLinks)
+        .style("stroke-width", function(d) { return Math.sqrt(d.value); });
+
+    //enter new links
+    link.enter().insert("line",".uncollapsed") //insert before any ".uncollapsed" elements
+        .attr("class","link")
+        .attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+    
+    link.exit().remove(); //exit old links      
+
+
+
+    //UPDATE CIRCLES *****************************************************
+    svg.selectAll(".circles").remove(); //delete old circles...not sure a clever way around this
+
+    circles = svg.insert("g")
+        .attr("class","circles")
+        .selectAll(".circles")
+        .data(circleData, function(d) {return d.name; });
+
+    circles.enter().insert("circle") 
+        .on("mousedown", function(d) {
+          d3.select(this).classed("selected", d.selected = 1);
+          if (!d.selected) { // Don't deselect on shift-drag.
+            if (!shiftKey) circles.classed("selected", function(p) { return p.selected = d === p; });
+            else d3.select(this).classed("selected", d.selected = 1);
+          }})
+        .on("mouseup", function(d) {
+          if (d.selected && shiftKey) d3.select(this).classed("selected", d.selected = 0);
+          })
+        .attr("r", 5)
+        .on("dblclick",unfreeze)
+        .style("fill", function(d) { return color(d.group); }) //color nodes based on group
+        .call(force.drag);
+
+    //exit old nodes    
+    circles.exit().remove(); 
+
+    //BRUSH *****************************************************
+    brush.call(d3.svg.brush()
+          .x(d3.scale.identity().domain([0, width]))
+          .y(d3.scale.identity().domain([0, height]))
+          .on("brushstart", function(d) {
+            circles.each(function(d) { d.previouslySelected = shiftKey && d.selected; });
+          })
+          .on("brush", function() {
+            var extent = d3.event.target.extent();
+            circles.classed("selected", function(d) {
+            return d.selected = d.previouslySelected ^
+                (extent[0][0] <= d.x && d.x < extent[1][0]
+                && extent[0][1] <= d.y && d.y < extent[1][1]);
+            });
+          })
+          .on("brushend", function() {
+            d3.event.target.clear();
+            d3.select(this).call(d3.event.target);
+          }));
+
+    //UPDATE PIES *****************************************************
+    svg.selectAll(".collapsed").remove(); //delete old pies
+
+    pies = svg.insert("g")
+    	.attr("class","collapsed")
+    	.selectAll(".collapsed")
+    	.data(pieData, function(d) { return d.name; });
+
+    pies2 = pies.enter().insert("g")
+        .attr("class", "collapsed")
+        .attr("index", function(d,i) { return i; })
+        .on("click",expand) //expand pies when clicked
+        .call(force.drag)
+        .selectAll("path")
+            .data(function(){ //colors pie based on number of nodes in each group
+                if (numberPies > 0) {
+                	var ind = getIndex(this);
+                    return pie(pieData[ind].colors);
+                }
+                else
+                    return pie([10]);
+            });
+
+    pies2.enter().append("path")
+            .attr("d",
+                arc.innerRadius(function(){                     
+                    return getRadius(this)/4;
+                }),
+                arc.outerRadius(function(){                     
+                    return getRadius(this);
+                }))
+            .style("fill", function(d, i) { return color(i); });
+
+
+    //exit old pies
+    pies.exit().remove(); 
+
+};
+
+function unfreeze(d){
+    d.fixed=false;
+    tick();
+    force.resume();
+}
+
+function getIndex(data){
+    var parentName = d3.select(data.parentNode).datum().name;
+    var ind = pieNames.indexOf(parentName);
+    return ind;
+}
+
+function getRadius(data){  
+    var radius = d3.select(data.parentNode).datum().size;
+    return radiusScale(radius);
+}
+
+function deepCopy(obj) {
+    if (Object.prototype.toString.call(obj) === '[object Array]') {
+        var out = [], i = 0, len = obj.length;
+        for ( ; i < len; i++ ) {
+            out[i] = arguments.callee(obj[i]);
+        }
+        return out;
+    }
+    if (typeof obj === 'object') {
+        var out = {}, i;
+        for ( i in obj ) {
+            out[i] = arguments.callee(obj[i]);
+        }
+        return out;
+    }
+    return obj;
+}
+
+function findCenter(data){
+    var avgX=0, avgY=0, size;
+    size = data.length;
+    data.forEach(function(d){
+        avgX += d.x;
+        avgY += d.y;
+        });
+    avgX = avgX/size;
+    avgY = avgY/size;
+    return [avgX, avgY];
+}
+
+
+function expand(d){
+	if (d3.event.defaultPrevented) return; //prevents click behavior if pie is being dragged
+	
+	var thisPie = d.name;
+
+	var insideNodes = graph.nodes.filter(function(d) {return d.inPie==thisPie; });
+	var insideLinks = graph.links.filter(function(d) {return d.inPie==thisPie; });
+
+	insideNodes.forEach(function(d){
+		d.collapsed = 0;
+		d.inPie = -1;
+	});
+
+	insideLinks.forEach(function(d){
+		d.collapsed = 0;
+		d.inPie = -1; 
+	});
+    
+	for (i=0; i<interLinks.length; i++){
+		if (interLinks[i].source.collapsed==2 && interLinks[i].source.name==thisPie)
+			interLinks[i].source = interLinks_orig[i].source;
+		if (interLinks[i].target.collapsed==2 && interLinks[i].target.name==thisPie)
+			interLinks[i].target = interLinks_orig[i].target;
+        if (interLinks[i].source.collapsed==0 && interLinks[i].target.collapsed==0)
+            interLinks_orig[i].collapsed=0;
+	}
+
+	numberPies--;
+
+	var pieIndex = pieNames.indexOf(thisPie);
+
+	pieData.splice(pieIndex,1);
+	pieNames.splice(pieIndex,1);
+
+	update();
+}
+
+function keydown() {
+    shiftKey = d3.event.shiftKey || d3.event.metaKey;
+}
+
+function keyup() {
+    shiftKey = d3.event.shiftKey || d3.event.metaKey;
+}
+
+function tick() {
+    link.attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+    circles.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+    pies.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+};
+
+</script>
