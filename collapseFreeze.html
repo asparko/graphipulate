@@ -15,8 +15,9 @@
   stroke: white;  
 }
 
-.hidden{
-
+.collapsed .selected{
+  stroke: black;
+  stroke-width: 1.5px;
 }
 
 .link {
@@ -52,7 +53,7 @@
            value="Unfreeze Selection"  />
 </div>
 
-<script type="text/javascript" src="d3/d3.js"></script>
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
 
 <script>
 
@@ -90,14 +91,24 @@ var link,
     pies2,
     numberPies=0,
     currPieName=0,
-    interLinks = [],
-    interLinks_orig =[],
+
+    nodesToCollapse = [],
+    piesToCollapse = [],
     toCollapse = [],
+
+    nodesToFreeze =[],
+    piesToFreeze = [],
     toFreeze = [],
+
+    nodesToUnfreeze = [],
+    piesToUnfreeze = [],
     toUnfreeze = [],
+
     pieData = [],
 	pieNames = [], //easily searchable array of pieNames that will match the ordering of pieData for easy deletion of pies
-    insideLinks = [],   
+    insideLinks = [],
+    interLinks = [],
+    interLinks_orig =[],   
     links2 = [],
     links2b = [];
 
@@ -106,7 +117,7 @@ var brush = svg.append("g")
     .datum(function() { return {selected: false, previouslySelected: false}; })
     .attr("class", "brush");
 
-d3.json("graphDataBig.json", function(error, json) {
+d3.json("graphData.json", function(error, json) {
     graph = json; //need to give it a global variable name so can use it in update()
     graph.nodes.forEach(function(d) { 
     		d.collapsed=0; 
@@ -128,15 +139,18 @@ d3.json("graphDataBig.json", function(error, json) {
 
 function update(){
     var circleData = graph.nodes.filter(function(d) {return d.collapsed==0; });
-    var hiddenData = graph.nodes.filter(function(d) {return d.collapsed==1; });
+    //var hiddenData = graph.nodes.filter(function(d) {return d.collapsed==1; });
+    var visiblePieData = pieData.filter(function(d) {return d.collapsed==0; });
     var linkRegData = graph.links.filter(function(d) {return d.collapsed==0; });
-    var allLinks = linkRegData.concat(interLinks);
-    var allNodes = circleData.concat(pieData); //pieData filled/emptied with brush selection
+    var allLinks = linkRegData.concat(interLinks); //need to concat with interLinks bc interLinks isn't part of graph.links
+    var allNodes = circleData.concat(visiblePieData); //pieData filled/emptied with brush selection
 
     //Define functionality of freeze button
     d3.select("#freeze")
         .on("click",function() {
-            toFreeze = circleData.filter(function(d) {return d.selected==1; });
+            nodesToFreeze = circleData.filter(function(d) {return d.selected==1; });
+            piesToFreeze = visiblePieData.filter(function(d) {return d.selected==1; });
+            toFreeze = nodesToFreeze.concat(piesToFreeze);
             toFreeze.forEach(function(d){
                 d.fixed=true;
             });
@@ -145,7 +159,9 @@ function update(){
     //Define functionality of unfreeze button
     d3.select("#unfreeze")
         .on("click",function() {
-            toUnfreeze = circleData.filter(function(d) {return d.selected==1; });
+            nodesToUnfreeze = circleData.filter(function(d) {return d.selected==1; });
+            piesToUnfreeze = visiblePieData.filter(function(d) {return d.selected==1; });
+            toUnfreeze = nodesToUnfreeze.concat(piesToUnfreeze);
             toUnfreeze.forEach(function(d){
                 d.fixed=false;
                 tick();
@@ -157,22 +173,35 @@ function update(){
     //Define functionality of collapse button
     d3.select("#collapse")
         .on("click", function() {
-            toCollapse = circleData.filter(function(d) {return d.selected==1; });
-            var loc = findCenter(toCollapse);
+            nodesToCollapse = circleData.filter(function(d) {return d.selected==1; });
+            piesToCollapse = visiblePieData.filter(function(d) {return d.selected==1; });
+            toCollapse = nodesToCollapse.concat(piesToCollapse);
+
+            var sizeToCollapse = 0;         //Number of nodes already in pies, plus new individual nodes
+            piesToCollapse.forEach(function(d){
+                sizeToCollapse += d.size;   //nodes already in selected pies
+            });
+            sizeToCollapse += nodesToCollapse.length;   //new indiv nodes
+
+            var loc = findCenter(toCollapse); //MAYBE weight the pie more heavily in this calc?
             toCollapse.forEach(function(d){
               d.collapsed=1;
               d.inPie=currPieName; //keeps track of which pie the collapsed nodes are in 
             });
 
-            var grp0 = toCollapse.filter(function(d) {return d.group==0; });
-            var grp1 = toCollapse.filter(function(d) {return d.group==1; });
+            //FIX THIS IN CASE THERE ARE MORE THAN TWO GRPS! And to include nodes already in pies added to new pie
+            var grp0 = nodesToCollapse.filter(function(d) {return d.group==0; });
+            var grp1 = nodesToCollapse.filter(function(d) {return d.group==1; });
 
             var newPie = {
-                    'size': toCollapse.length, //num of nodes in collapsed group
+                    'size': sizeToCollapse, //num of nodes in collapsed group
                     'name': currPieName,
-                    'group': 2,
-                    'collapsed': 2,
-                    'colors': [grp0.length, grp1.length],
+                    'group': -1, //a group of -1 identifies it as a pie
+                    'collapsed': 0, //When pies can be collapsed in other pies, will want a 0 or 1 here
+                    'selected': 0,
+                    'previouslySelected': 0,
+                    'inPie': -1,
+                    'colors': [grp0.length, grp1.length], //What to do when more than two groups?!?!
                     'x': loc[0],
                     'y': loc[1]
                 };
@@ -191,7 +220,7 @@ function update(){
 
             //Find inter-group links
             interLinks_orig = graph.links.filter(function(d){
-                return d.source.inPie !== d.target.inPie; //find all links between groups
+                return d.source.inPie !== d.target.inPie; //find all links between groups, even those not currently being selected
             });
 
             interLinks = deepCopy(interLinks_orig);
@@ -202,7 +231,7 @@ function update(){
 
             //undo deep copy for regular nodes; replace others with new pie nodes
             for (i=0; i<interLinks.length; i++){
-                interLinks[i].collapsed=2;
+                interLinks[i].collapsed=0; //this used to be a 2, but i don't think it's necessary
                 //if source is selected, set it to newPie
                 //if source is not selected, set to other pie if inPie is already set
                 if (interLinks[i].source.selected==1)
@@ -293,10 +322,16 @@ function update(){
           .y(d3.scale.identity().domain([0, height]))
           .on("brushstart", function(d) {
             circles.each(function(d) { d.previouslySelected = shiftKey && d.selected; });
+            pies.each(function(d) { d.previouslySelected = shiftKey && d.selected; });
           })
           .on("brush", function() {
             var extent = d3.event.target.extent();
             circles.classed("selected", function(d) {
+            return d.selected = d.previouslySelected ^
+                (extent[0][0] <= d.x && d.x < extent[1][0]
+                && extent[0][1] <= d.y && d.y < extent[1][1]);
+            });
+            pies.classed("selected", function(d) {
             return d.selected = d.previouslySelected ^
                 (extent[0][0] <= d.x && d.x < extent[1][0]
                 && extent[0][1] <= d.y && d.y < extent[1][1]);
@@ -313,9 +348,18 @@ function update(){
     pies = svg.insert("g")
     	.attr("class","collapsed")
     	.selectAll(".collapsed")
-    	.data(pieData, function(d) { return d.name; });
+    	.data(visiblePieData, function(d) { return d.name; });
 
     pies2 = pies.enter().insert("g")
+        .on("mousedown", function(d) {
+          d3.select(this).classed("selected", d.selected = 1);
+          if (!d.selected) { // Don't deselect on shift-drag.
+            if (!shiftKey) circles.classed("selected", function(p) { return p.selected = d === p; });
+            else d3.select(this).classed("selected", d.selected = 1);
+          }})
+        .on("mouseup", function(d) {
+          if (d.selected && shiftKey) d3.select(this).classed("selected", d.selected = 0);
+          })
         .attr("class", "collapsed")
         .attr("index", function(d,i) { return i; })
         .on("click",expand) //expand pies when clicked
@@ -346,6 +390,7 @@ function update(){
 
 };
 
+//DO WE EVER USE THIS FUNCTION????
 function unfreeze(d){
     d.fixed=false;
     tick();
@@ -400,6 +445,7 @@ function expand(d){
 	var thisPie = d.name;
 
 	var insideNodes = graph.nodes.filter(function(d) {return d.inPie==thisPie; });
+    var insidePies = pieData.filter(function(d) {return d.inPie==thisPie; });
 	var insideLinks = graph.links.filter(function(d) {return d.inPie==thisPie; });
 
 	insideNodes.forEach(function(d){
@@ -407,15 +453,20 @@ function expand(d){
 		d.inPie = -1;
 	});
 
+    insidePies.forEach(function(d){
+        d.collapsed = 0;
+        d.inPie = -1;
+    });
+
 	insideLinks.forEach(function(d){
 		d.collapsed = 0;
 		d.inPie = -1; 
 	});
     
 	for (i=0; i<interLinks.length; i++){
-		if (interLinks[i].source.collapsed==2 && interLinks[i].source.name==thisPie)
+		if (interLinks[i].source.group==-1 && interLinks[i].source.name==thisPie) //if source in a pie (group = -1) and that pie is the one being expanded...
 			interLinks[i].source = interLinks_orig[i].source;
-		if (interLinks[i].target.collapsed==2 && interLinks[i].target.name==thisPie)
+		if (interLinks[i].target.group==-1 && interLinks[i].target.name==thisPie)
 			interLinks[i].target = interLinks_orig[i].target;
         if (interLinks[i].source.collapsed==0 && interLinks[i].target.collapsed==0)
             interLinks_orig[i].collapsed=0;
