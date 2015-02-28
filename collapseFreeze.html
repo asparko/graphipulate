@@ -177,6 +177,8 @@ function update(){
             piesToCollapse = visiblePieData.filter(function(d) {return d.selected==1; });
             toCollapse = nodesToCollapse.concat(piesToCollapse);
 
+            //console.log(piesToCollapse.length);
+
             var sizeToCollapse = 0;         //Number of nodes already in pies, plus new individual nodes
             piesToCollapse.forEach(function(d){
                 sizeToCollapse += d.size;   //nodes already in selected pies
@@ -316,31 +318,7 @@ function update(){
     //exit old nodes    
     circles.exit().remove(); 
 
-    //BRUSH *****************************************************
-    brush.call(d3.svg.brush()
-          .x(d3.scale.identity().domain([0, width]))
-          .y(d3.scale.identity().domain([0, height]))
-          .on("brushstart", function(d) {
-            circles.each(function(d) { d.previouslySelected = shiftKey && d.selected; });
-            pies.each(function(d) { d.previouslySelected = shiftKey && d.selected; });
-          })
-          .on("brush", function() {
-            var extent = d3.event.target.extent();
-            circles.classed("selected", function(d) {
-            return d.selected = d.previouslySelected ^
-                (extent[0][0] <= d.x && d.x < extent[1][0]
-                && extent[0][1] <= d.y && d.y < extent[1][1]);
-            });
-            pies.classed("selected", function(d) {
-            return d.selected = d.previouslySelected ^
-                (extent[0][0] <= d.x && d.x < extent[1][0]
-                && extent[0][1] <= d.y && d.y < extent[1][1]);
-            });
-          })
-          .on("brushend", function() {
-            d3.event.target.clear();
-            d3.select(this).call(d3.event.target);
-          }));
+    
 
     //UPDATE PIES *****************************************************
     svg.selectAll(".collapsed").remove(); //delete old pies
@@ -388,6 +366,32 @@ function update(){
     //exit old pies
     pies.exit().remove(); 
 
+    //BRUSH *****************************************************
+    brush.call(d3.svg.brush()
+          .x(d3.scale.identity().domain([0, width]))
+          .y(d3.scale.identity().domain([0, height]))
+          .on("brushstart", function(d) {
+            circles.each(function(d) { d.previouslySelected = shiftKey && d.selected; });
+            pies.each(function(d) { d.previouslySelected = shiftKey && d.selected; });
+          })
+          .on("brush", function() {
+            var extent = d3.event.target.extent();
+            circles.classed("selected", function(d) {
+            return d.selected = d.previouslySelected ^
+                (extent[0][0] <= d.x && d.x < extent[1][0]
+                && extent[0][1] <= d.y && d.y < extent[1][1]);
+            });
+            pies.classed("selected", function(d) {
+            return d.selected = d.previouslySelected ^
+                (extent[0][0] <= d.x && d.x < extent[1][0]
+                && extent[0][1] <= d.y && d.y < extent[1][1]);
+            });
+          })
+          .on("brushend", function() {
+            d3.event.target.clear();
+            d3.select(this).call(d3.event.target);
+          }));
+
 };
 
 //DO WE EVER USE THIS FUNCTION????
@@ -429,6 +433,7 @@ function deepCopy(obj) {
 function findCenter(data){
     var avgX=0, avgY=0, size;
     size = data.length;
+    console.log(data);
     data.forEach(function(d){
         avgX += d.x;
         avgY += d.y;
