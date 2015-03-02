@@ -117,7 +117,7 @@ var brush = svg.append("g")
     .datum(function() { return {selected: false, previouslySelected: false}; })
     .attr("class", "brush");
 
-d3.json("graphData.json", function(error, json) {
+d3.json("weightedTestData.json", function(error, json) {
     graph = json; //need to give it a global variable name so can use it in update()
     graph.nodes.forEach(function(d) { 
     		d.collapsed=0; 
@@ -139,11 +139,11 @@ d3.json("graphData.json", function(error, json) {
 
 function update(){
     var circleData = graph.nodes.filter(function(d) {return d.collapsed==0; });
-    //var hiddenData = graph.nodes.filter(function(d) {return d.collapsed==1; });
     var visiblePieData = pieData.filter(function(d) {return d.collapsed==0; });
-    var linkRegData = graph.links.filter(function(d) {return d.collapsed==0; });
-    var allLinks = linkRegData.concat(interLinks); //need to concat with interLinks bc interLinks isn't part of graph.links
-    var allNodes = circleData.concat(visiblePieData); //pieData filled/emptied with brush selection
+    var visibleRegLinks = graph.links.filter(function(d) {return d.collapsed==0; });
+    var visibleInterLinks = interLinks.filter(function(d) {return d.collapsed==0; });
+    var allLinks = visibleRegLinks.concat(visibleInterLinks);      
+    var allNodes = circleData.concat(visiblePieData);   //pieData filled/emptied with brush selection
 
     //Define functionality of freeze button
     d3.select("#freeze")
@@ -190,12 +190,12 @@ function update(){
             sizeToCollapse += nodesToCollapse.length;   //add the new indiv nodes
 
             //LOCATION OF NEW PIE
-            var loc = findCenter(toCollapse);           //MAYBE weight the pie more heavily in this calc?
+            var loc = findCenter(toCollapse);           //TODO: weight the pie more heavily in this calc?
 
             //COLLAPSE SELECTED NODES AND PIES
             toCollapse.forEach(function(d){
-              d.collapsed=1;
-              d.inPie=currPieName;                      //keep track of which pie the collapsed nodes are in 
+                d.collapsed=1;
+                d.inPie=currPieName;                    //keep track of which pie the collapsed nodes are in 
             });
 
             //TODO: FIX THIS IN CASE THERE ARE MORE THAN TWO GRPS! 
@@ -222,10 +222,11 @@ function update(){
             pieNames.push(currPieName);
 
 
-            //Collapse links within selected group
-            insideLinks = graph.links.filter(function(d){
+            //COLLAPSE LINKS WITHIN SELECTION
+            insideLinks = allLinks.filter(function(d){  //TODO: maybe deal separately with orig links and created links?
                 return d.source.selected==1 && d.target.selected==1; //find all links within selected group
             });
+
             insideLinks.forEach(function(d){
                 d.collapsed = 1;
                 d.inPie = currPieName; //keep track of which pie the collapsed links are part of
@@ -236,6 +237,7 @@ function update(){
                 return d.source.inPie !== d.target.inPie; //find all links between groups, even those not currently being selected
             });
 
+            //TODO: somehow need to save the interlinks that become hidden too. if i was an interlink, and one of the pies i linked to got embedded in another pie, i don't want to just change my target. will need to return if that pie gets expanded and my pie reappears.
             interLinks = deepCopy(interLinks_orig);
             
             interLinks_orig.forEach(function(d){
@@ -405,7 +407,7 @@ function update(){
 
 };
 
-//DO WE EVER USE THIS FUNCTION????
+//TODO: DO WE EVER USE THIS FUNCTION????
 function unfreeze(d){
     d.fixed=false;
     tick();
@@ -462,6 +464,7 @@ function expand(d){
 	var insideNodes = graph.nodes.filter(function(d) {return d.inPie==thisPie; });
     var insidePies = pieData.filter(function(d) {return d.inPie==thisPie; });
 	var insideLinks = graph.links.filter(function(d) {return d.inPie==thisPie; });
+    //TODO: do same for interLinks??
 
 	insideNodes.forEach(function(d){
 		d.collapsed = 0;
