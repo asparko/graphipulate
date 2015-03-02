@@ -170,40 +170,51 @@ function update(){
     });
 
 
-    //Define functionality of collapse button
+    //COLLAPSE BUTTON FUNCTIONALITY
     d3.select("#collapse")
         .on("click", function() {
+            //FIND all selected nodes and pies
             nodesToCollapse = circleData.filter(function(d) {return d.selected==1; });
             piesToCollapse = visiblePieData.filter(function(d) {return d.selected==1; });
             toCollapse = nodesToCollapse.concat(piesToCollapse);
 
-            //console.log(piesToCollapse.length);
-
-            var sizeToCollapse = 0;         //Number of nodes already in pies, plus new individual nodes
-            piesToCollapse.forEach(function(d){
-                sizeToCollapse += d.size;   //nodes already in selected pies
+            //SIZE OF NEW PIE 
+            var sizeToCollapse = 0; 
+            var sizeGrp0 = 0;
+            var sizeGrp1 = 0;         
+            piesToCollapse.forEach(function(d){         //number of nodes already in selected pies
+                sizeToCollapse += d.size;  
+                sizeGrp0 += d.colors[0];                //TODO: fix for more than 2 grps
+                sizeGrp1 += d.colors[1]; 
             });
-            sizeToCollapse += nodesToCollapse.length;   //new indiv nodes
+            sizeToCollapse += nodesToCollapse.length;   //add the new indiv nodes
 
-            var loc = findCenter(toCollapse); //MAYBE weight the pie more heavily in this calc?
+            //LOCATION OF NEW PIE
+            var loc = findCenter(toCollapse);           //MAYBE weight the pie more heavily in this calc?
+
+            //COLLAPSE SELECTED NODES AND PIES
             toCollapse.forEach(function(d){
               d.collapsed=1;
-              d.inPie=currPieName; //keeps track of which pie the collapsed nodes are in 
+              d.inPie=currPieName;                      //keep track of which pie the collapsed nodes are in 
             });
 
-            //FIX THIS IN CASE THERE ARE MORE THAN TWO GRPS! And to include nodes already in pies added to new pie
+            //TODO: FIX THIS IN CASE THERE ARE MORE THAN TWO GRPS! 
+            //add indiv nodes to group count
             var grp0 = nodesToCollapse.filter(function(d) {return d.group==0; });
+            sizeGrp0 += grp0.length;                    
             var grp1 = nodesToCollapse.filter(function(d) {return d.group==1; });
+            sizeGrp1 += grp1.length;
 
+            //CREATE NEW PIE
             var newPie = {
-                    'size': sizeToCollapse, //num of nodes in collapsed group
+                    'size': sizeToCollapse,             //num of nodes in collapsed group
                     'name': currPieName,
-                    'group': -1, //a group of -1 identifies it as a pie
-                    'collapsed': 0, //When pies can be collapsed in other pies, will want a 0 or 1 here
+                    'group': -1,                        //a group of -1 identifies it as a pie
+                    'collapsed': 0, 
                     'selected': 0,
                     'previouslySelected': 0,
                     'inPie': -1,
-                    'colors': [grp0.length, grp1.length], //What to do when more than two groups?!?!
+                    'colors': [sizeGrp0, sizeGrp1],     //TODO: deal with more than two grps
                     'x': loc[0],
                     'y': loc[1]
                 };
@@ -433,7 +444,6 @@ function deepCopy(obj) {
 function findCenter(data){
     var avgX=0, avgY=0, size;
     size = data.length;
-    console.log(data);
     data.forEach(function(d){
         avgX += d.x;
         avgY += d.y;
