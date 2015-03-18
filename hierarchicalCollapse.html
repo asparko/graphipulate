@@ -106,19 +106,18 @@ var link,
 
     pieData = [],
 	pieNames = [], //easily searchable array of pieNames that will match the ordering of pieData for easy deletion of pies
+    
     insideLinks = [],
     interLinks = [],
-    interLinks_orig =[],   
-    links2 = [],
-    links2b = [];
+    interLinks_orig =[];
 
 
 var brush = svg.append("g")
     .datum(function() { return {selected: false, previouslySelected: false}; })
     .attr("class", "brush");
 
-d3.json("weightedTestData.json", function(error, json) {
-    graph = json; //need to give it a global variable name so can use it in update()
+d3.json("karateData.json", function(error, json) {
+    graph = json;                       //give data a global variable name so can use it in update()
     graph.nodes.forEach(function(d) { 
     		d.collapsed=0; 
     		d.selected=0;
@@ -128,11 +127,15 @@ d3.json("weightedTestData.json", function(error, json) {
     graph.links.forEach(function(d) { 
     		d.collapsed=0; 
     		d.selected=0;
+            d.inPie=-1;
+            d.sourceArr=[graph.nodes[d.source]];     //create stacks for hierarchical sources and targets
+            d.targetArr=[graph.nodes[d.target]];
     	}); 
 
     radiusScale.domain([1,graph.nodes.length])
             .range([5,40]);
-    
+
+
     update();
 });
 
@@ -140,12 +143,10 @@ d3.json("weightedTestData.json", function(error, json) {
 function update(){
     var circleData = graph.nodes.filter(function(d) {return d.collapsed==0; });
     var visiblePieData = pieData.filter(function(d) {return d.collapsed==0; });
-    var visibleRegLinks = graph.links.filter(function(d) {return d.collapsed==0; });
-    var visibleInterLinks = interLinks.filter(function(d) {return d.collapsed==0; });
-    var allLinks = visibleRegLinks.concat(visibleInterLinks);      
-    var allNodes = circleData.concat(visiblePieData);   //pieData filled/emptied with brush selection
+    var visibleLinks = graph.links.filter(function(d) {return d.collapsed==0; });   
+    var allNodes = circleData.concat(visiblePieData);   
 
-    //Define functionality of freeze button
+    //freeze button
     d3.select("#freeze")
         .on("click",function() {
             nodesToFreeze = circleData.filter(function(d) {return d.selected==1; });
@@ -156,7 +157,7 @@ function update(){
             });
     });
 
-    //Define functionality of unfreeze button
+    //unfreeze button
     d3.select("#unfreeze")
         .on("click",function() {
             nodesToUnfreeze = circleData.filter(function(d) {return d.selected==1; });
@@ -221,9 +222,8 @@ function update(){
             pieData.push(newPie);
             pieNames.push(currPieName);
 
-
             //COLLAPSE LINKS WITHIN SELECTION
-            insideLinks = allLinks.filter(function(d){  //TODO: maybe deal separately with orig links and created links?
+            insideLinks = visibleLinks.filter(function(d){  
                 return d.source.selected==1 && d.target.selected==1; //find all links within selected group
             });
 
@@ -232,43 +232,22 @@ function update(){
                 d.inPie = currPieName; //keep track of which pie the collapsed links are part of
             });
 
-            //Find inter-group links
-            interLinks_orig = graph.links.filter(function(d){
-                return d.source.inPie !== d.target.inPie; //find all links between groups, even those not currently being selected
+            //ADJUST LINKS BETWEEN PIES
+            visibleLinks = visibleLinks.filter(function(d){ return d.collapsed==0; });  //removes just-collapsed links from visible
+
+            visibleLinks.forEach(function(d){
+                if (d.source.inPie==currPieName) {
+                    d.sourceArr.push(newPie);
+                    d.source = newPie;
+                    interLinks.push(d);
+                };
+                if (d.target.inPie==currPieName){
+                    d.targetArr.push(newPie);
+                    d.target = newPie;
+                    interLinks.push(d);
+                };
             });
 
-            //TODO: somehow need to save the interlinks that become hidden too. if i was an interlink, and one of the pies i linked to got embedded in another pie, i don't want to just change my target. will need to return if that pie gets expanded and my pie reappears.
-            interLinks = deepCopy(interLinks_orig);
-            
-            interLinks_orig.forEach(function(d){
-                d.collapsed=1;
-            });
-
-            //undo deep copy for regular nodes; replace others with new pie nodes
-            for (i=0; i<interLinks.length; i++){
-                interLinks[i].collapsed=0; //this used to be a 2, but i don't think it's necessary
-                //if source is selected, set it to newPie
-                //if source is not selected, set to other pie if inPie is already set
-                if (interLinks[i].source.selected==1)
-                    interLinks[i].source = newPie;
-                else if (interLinks[i].source.inPie !== -1){
-                	var ind = pieNames.indexOf(interLinks[i].source.inPie);
-                	interLinks[i].source = pieData[ind];
-                }
-                else if (interLinks[i].source.inPie == -1)
-                	interLinks[i].source = interLinks_orig[i].source;
-
-                //do same for targets
-                if (interLinks[i].target.selected==1)
-                    interLinks[i].target = newPie;
-                else if (interLinks[i].target.inPie !== -1){
-                	var ind = pieNames.indexOf(interLinks[i].target.inPie);
-                	interLinks[i].target = pieData[ind];
-                }
-                else if (interLinks[i].target.inPie == -1)
-                	interLinks[i].target = interLinks_orig[i].target;	
-            };
-            
             toCollapse.forEach(function(d){
               d.selected=0;
               d.previouslySelected=0;
@@ -284,23 +263,24 @@ function update(){
     //GENERATE FDL *****************************************************
     force
         .nodes(allNodes)
-        .links(allLinks)
+        .links(visibleLinks)
         .start();
 
 
     //UPDATE LINKS *****************************************************
     link = svg.selectAll(".link")
-        .data(allLinks)
+        .data(visibleLinks)
         .style("stroke-width", function(d) { return Math.sqrt(d.value); });
 
     //enter new links
+    //TODO: change this to reflect stacks of sources and targets
     link.enter().insert("line",".uncollapsed") //insert before any ".uncollapsed" elements
         .attr("class","link")
         .attr("x1", function(d) { return d.source.x; })
         .attr("y1", function(d) { return d.source.y; })
         .attr("x2", function(d) { return d.target.x; })
         .attr("y2", function(d) { return d.target.y; });
-    
+
     link.exit().remove(); //exit old links      
 
 
@@ -334,17 +314,17 @@ function update(){
     
 
     //UPDATE PIES *****************************************************
-    svg.selectAll(".collapsed").remove(); //delete old pies
+    svg.selectAll(".collapsed").remove();                   //delete old pies
 
-    pies = svg.insert("g")
+    pies = svg.insert("g")                                  //Create big group for all collapsed pies
     	.attr("class","collapsed")
     	.selectAll(".collapsed")
     	.data(visiblePieData, function(d) { return d.name; });
 
-    pies2 = pies.enter().insert("g")
+    pies2 = pies.enter().insert("g")                        //Create path group for each individual pie
         .on("mousedown", function(d) {
           d3.select(this).classed("selected", d.selected = 1);
-          if (!d.selected) { // Don't deselect on shift-drag.
+          if (!d.selected) {                                // Don't deselect on shift-drag.
             if (!shiftKey) circles.classed("selected", function(p) { return p.selected = d === p; });
             else d3.select(this).classed("selected", d.selected = 1);
           }})
@@ -353,10 +333,10 @@ function update(){
           })
         .attr("class", "collapsed")
         .attr("index", function(d,i) { return i; })
-        .on("click",expand) //expand pies when clicked
+        .on("click",expand)                                 //expand pies when clicked
         .call(force.drag)
         .selectAll("path")
-            .data(function(){ //colors pie based on number of nodes in each group
+            .data(function(){                               //colors pie based on number of nodes in each group
                 if (numberPies > 0) {
                 	var ind = getIndex(this);
                     return pie(pieData[ind].colors);
@@ -425,6 +405,7 @@ function getRadius(data){
     return radiusScale(radius);
 }
 
+//TODO: Might be able to remove this function!! :)
 function deepCopy(obj) {
     if (Object.prototype.toString.call(obj) === '[object Array]') {
         var out = [], i = 0, len = obj.length;
@@ -464,7 +445,6 @@ function expand(d){
 	var insideNodes = graph.nodes.filter(function(d) {return d.inPie==thisPie; });
     var insidePies = pieData.filter(function(d) {return d.inPie==thisPie; });
 	var insideLinks = graph.links.filter(function(d) {return d.inPie==thisPie; });
-    //TODO: do same for interLinks??
 
 	insideNodes.forEach(function(d){
 		d.collapsed = 0;
@@ -480,15 +460,17 @@ function expand(d){
 		d.collapsed = 0;
 		d.inPie = -1; 
 	});
-    
-	for (i=0; i<interLinks.length; i++){
-		if (interLinks[i].source.group==-1 && interLinks[i].source.name==thisPie) //if source in a pie (group = -1) and that pie is the one being expanded...
-			interLinks[i].source = interLinks_orig[i].source;
-		if (interLinks[i].target.group==-1 && interLinks[i].target.name==thisPie)
-			interLinks[i].target = interLinks_orig[i].target;
-        if (interLinks[i].source.collapsed==0 && interLinks[i].target.collapsed==0)
-            interLinks_orig[i].collapsed=0;
-	}
+  
+    interLinks.forEach(function(d){
+        if (d.source.group==-1 && d.source.name==thisPie) { //if source in a pie (group = -1) and that pie is the one being expanded...
+            d.sourceArr.pop();                              //removes expanding pie from source stack
+            d.source = d.sourceArr[d.sourceArr.length-1];   //resets source as last thing in stack
+        }
+        if (d.target.group==-1 && d.target.name==thisPie) { //if target in a pie (group = -1) and that pie is the one being expanded...
+            d.targetArr.pop();                              //removes expanding pie from target stack
+            d.target = d.targetArr[d.targetArr.length-1];   //resets target as last item in stack
+        };
+    });
 
 	numberPies--;
 
