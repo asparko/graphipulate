@@ -31,30 +31,121 @@
   shape-rendering: crispEdges;
 }
 
+/* .json ENTRY FIELD */
+input[type="text"] {
+  display: block;
+  margin: 0;
+  width: 200px;
+  font-family: sans-serif;
+  font-size: 10px;
+  appearance: none;
+  box-shadow: none;
+  border-radius: none;
+}
+input[type="text"]:focus {
+  outline: none;
+}
+
+input[type="submit"] {
+    -moz-box-shadow: 0px 5px 8px -6px #6c6e6e;
+    -webkit-box-shadow: 0px 5px 8px -6px #6c6e6e;
+    box-shadow: 0px 5px 8px -6px #6c6e6e;
+    background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #d1d1d1), color-stop(1, #adadad));
+    background:-moz-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
+    background:-webkit-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
+    background:-o-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
+    background:-ms-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
+    background:linear-gradient(to bottom, #d1d1d1 5%, #adadad 100%);
+    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#d1d1d1', endColorstr='#adadad',GradientType=0);
+    background-color:#d1d1d1;
+    -moz-border-radius:4px;
+    -webkit-border-radius:4px;
+    border-radius:4px;
+    display:inline-block;
+    cursor:pointer;
+    color:#ffffff;
+    font-family:sans-serif;
+    font-size:14px;
+    font-weight:bold;
+    padding:8px 12px;
+    text-decoration:none;
+}
+.input {
+  font-family: sans-serif;
+  font-size: 12px; 
+  color: #c9c9c9;
+}
+.input input[type="text"] {
+  padding: 10px;
+  border: solid 5px #c9c9c9;
+  transition: border 0.3s;
+}
+.input input[type="text"]:focus,
+.input input[type="text"].focus {
+  border: solid 5px #969696;
+}
+ 
+/* BUTTONS */
+.myButton {
+    -moz-box-shadow: 0px 5px 8px -6px #6c6e6e;
+    -webkit-box-shadow: 0px 5px 8px -6px #6c6e6e;
+    box-shadow: 0px 5px 8px -6px #6c6e6e;
+    background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #d1d1d1), color-stop(1, #adadad));
+    background:-moz-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
+    background:-webkit-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
+    background:-o-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
+    background:-ms-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
+    background:linear-gradient(to bottom, #d1d1d1 5%, #adadad 100%);
+    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#d1d1d1', endColorstr='#adadad',GradientType=0);
+    background-color:#d1d1d1;
+    -moz-border-radius:4px;
+    -webkit-border-radius:4px;
+    border-radius:4px;
+    display:inline-block;
+    cursor:pointer;
+    color:#ffffff;
+    font-family:sans-serif;
+    font-size:14px;
+    font-weight:bold;
+    padding:8px 12px;
+    text-decoration:none;
+}
+.myButton:hover {
+    background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #adadad), color-stop(1, #d1d1d1));
+    background:-moz-linear-gradient(top, #adadad 5%, #d1d1d1 100%);
+    background:-webkit-linear-gradient(top, #adadad 5%, #d1d1d1 100%);
+    background:-o-linear-gradient(top, #adadad 5%, #d1d1d1 100%);
+    background:-ms-linear-gradient(top, #adadad 5%, #d1d1d1 100%);
+    background:linear-gradient(to bottom, #adadad 5%, #d1d1d1 100%);
+    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#adadad', endColorstr='#d1d1d1',GradientType=0);
+    background-color:#adadad;
+}
+.myButton:active {
+    position:relative;
+    top:1px;
+}
 </style>
 
+<!-- MAIN DOCUMENT BODY -->
 <body>
 
-<div id="collapse">
-    <input name="collapseButton" 
-           type="button" 
-           value="Collapse Selection"  />
+<div id="data">
+    <form class="input">
+        <a>Enter .json data file name: </a>
+        <input type="text" placeholder=".json">
+        <input type="submit" value="Upload .json Data File">
+    </form>
 </div>
 
-<div id="freeze">
-    <input name="freezeButton" 
-           type="button" 
-           value="Freeze Selection"  />
-</div>
-
-<div id="unfreeze">
-    <input name="unfreezeButton" 
-           type="button" 
-           value="Unfreeze Selection"  />
+<div align="middle">
+    <a id="collapse" class="myButton">collapse</a>
+    <a href="#" id="freeze" class="myButton">pin</a>
+    <a href="#" id="unfreeze" class="myButton">un-pin</a>
 </div>
 
 <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
 
+<!-- GRAPHIPULATE SCRIPT -->
 <script>
 
 var width = 960,
