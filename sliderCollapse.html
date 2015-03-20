@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+
 <style>
 
 .circles {
@@ -46,30 +47,6 @@ input[type="text"]:focus {
   outline: none;
 }
 
-input[type="submit"] {
-    -moz-box-shadow: 0px 5px 8px -6px #6c6e6e;
-    -webkit-box-shadow: 0px 5px 8px -6px #6c6e6e;
-    box-shadow: 0px 5px 8px -6px #6c6e6e;
-    background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #d1d1d1), color-stop(1, #adadad));
-    background:-moz-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
-    background:-webkit-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
-    background:-o-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
-    background:-ms-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
-    background:linear-gradient(to bottom, #d1d1d1 5%, #adadad 100%);
-    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#d1d1d1', endColorstr='#adadad',GradientType=0);
-    background-color:#d1d1d1;
-    -moz-border-radius:4px;
-    -webkit-border-radius:4px;
-    border-radius:4px;
-    display:inline-block;
-    cursor:pointer;
-    color:#ffffff;
-    font-family:sans-serif;
-    font-size:14px;
-    font-weight:bold;
-    padding:8px 12px;
-    text-decoration:none;
-}
 .input {
   font-family: sans-serif;
   font-size: 12px; 
@@ -96,7 +73,7 @@ input[type="submit"] {
     background:-o-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
     background:-ms-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
     background:linear-gradient(to bottom, #d1d1d1 5%, #adadad 100%);
-    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#d1d1d1', endColorstr='#adadad',GradientType=0);
+    /*filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#d1d1d1', endColorstr='#adadad',GradientType=0);*/
     background-color:#d1d1d1;
     -moz-border-radius:4px;
     -webkit-border-radius:4px;
@@ -117,23 +94,30 @@ input[type="submit"] {
     background:-o-linear-gradient(top, #adadad 5%, #d1d1d1 100%);
     background:-ms-linear-gradient(top, #adadad 5%, #d1d1d1 100%);
     background:linear-gradient(to bottom, #adadad 5%, #d1d1d1 100%);
-    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#adadad', endColorstr='#d1d1d1',GradientType=0);
+    /*filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#adadad', endColorstr='#d1d1d1',GradientType=0);*/
     background-color:#adadad;
 }
 .myButton:active {
     position:relative;
     top:1px;
 }
+
+.slider {
+    width: 800px;
+}
+
 </style>
+<link rel="stylesheet" href="d3.slider.css" />  
+
 
 <!-- MAIN DOCUMENT BODY -->
 <body>
 
 <div id="data">
-    <form class="input">
+    <form class="input" name="jsonform" onsubmit="return false;">
         <a>Enter .json data file name: </a>
-        <input type="text" placeholder=".json">
-        <input type="submit" value="Upload .json Data File">
+        <input type="text" id="file" placeholder=".json">
+        <input type="button" id="upload" value="upload">
     </form>
 </div>
 
@@ -143,10 +127,17 @@ input[type="submit"] {
     <a href="#" id="unfreeze" class="myButton">un-pin</a>
 </div>
 
+<div align = "middle">
+    <div id="slider1"></div>
+</div>
+
 <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script src="d3.slider.js"></script>
 
 <!-- GRAPHIPULATE SCRIPT -->
 <script>
+
+
 
 var width = 960,
     height = 500,
@@ -163,6 +154,8 @@ var force = d3.layout.force()
     .charge(-200)
     .linkDistance(100)
     .size([width, height]);
+
+var fileEntered = 0;
 
 var arc = d3.svg.arc();
 
@@ -182,6 +175,8 @@ var link,
     pies2,
     numberPies=0,
     currPieName=0,
+
+    partition=0;
 
     nodesToCollapse = [],
     piesToCollapse = [],
@@ -207,31 +202,78 @@ var brush = svg.append("g")
     .datum(function() { return {selected: false, previouslySelected: false}; })
     .attr("class", "brush");
 
-d3.json("multiGroupTestData.json", function(error, json) {
-    graph = json;                       //give data a global variable name so can use it in update()
-    graph.nodes.forEach(function(d) { 
-    		d.collapsed=0; 
-    		d.selected=0;
-    		d.previouslySelected=0;
-    		d.inPie=-1;
-    	}); 
-    graph.links.forEach(function(d) { 
-    		d.collapsed=0; 
-    		d.selected=0;
+//TODO: add another slider bar so we have one for color and one for pies
+//TODO: fix step snaps of slider somehow
+
+d3.select('#slider1')
+    .attr("class","slider")
+    .call(d3.slider()
+        .axis(d3.svg.axis())
+        .snap(true).min(0).max(10).step(0.5)
+        .on("slideend", function(evt, value) {
+            partition=value;
+            //TODO: change collapsed status of various nodes
+            update();
+        }));
+
+
+if (fileEntered==0){    //start with a default data file
+    console.log("no file");
+    d3.json("graphData.json", function(error, json) {
+        graph = json;   //give data a global variable name so can use it in update()
+        graph.nodes.forEach(function(d) { 
+            d.collapsed=0; 
+            d.selected=0;
+            d.previouslySelected=0;
+            d.inPie=-1;
+        }); 
+        graph.links.forEach(function(d) { 
+            d.collapsed=0; 
+            d.selected=0;
             d.inPie=-1;
             d.sourceArr=[graph.nodes[d.source]];     //create stacks for hierarchical sources and targets
             d.targetArr=[graph.nodes[d.target]];
-    	}); 
-
-    radiusScale.domain([1,graph.nodes.length])
+        }); 
+        radiusScale.domain([1,graph.nodes.length])
             .range([5,40]);
 
+        update();
+    });
+};
 
-    update();
+
+//json file entry
+d3.select("#upload").on("click",function(){
+    fileEntered=1;
+    d3.select("#data").call(function(){
+        var filename = document.jsonform.elements["file"].value;        
+        d3.json(filename.toString(), function(error, json) {
+            graph = json;       //give data a global variable name so can use it in update()
+            graph.nodes.forEach(function(d) { 
+                d.collapsed=0; 
+                d.selected=0;
+                d.previouslySelected=0;
+                d.inPie=-1;
+                console.log(d.group[1]);
+            }); 
+            graph.links.forEach(function(d) { 
+                d.collapsed=0; 
+                d.selected=0;
+                d.inPie=-1;
+                d.sourceArr=[graph.nodes[d.source]];     //create stacks for hierarchical sources and targets
+                d.targetArr=[graph.nodes[d.target]];
+            }); 
+        radiusScale.domain([1,graph.nodes.length])
+            .range([5,40]);
+        update();
+        });
+    });
 });
 
 
+/******    UPDATE!    ******/
 function update(){
+
     var circleData = graph.nodes.filter(function(d) {return d.collapsed==0; });
     var visiblePieData = pieData.filter(function(d) {return d.collapsed==0; });
     var visibleLinks = graph.links.filter(function(d) {return d.collapsed==0; });   
@@ -251,8 +293,8 @@ function update(){
     //unfreeze button
     d3.select("#unfreeze")
         .on("click",function() {
-            nodesToUnfreeze = circleData.filter(function(d) {return d.selected==1; });
-            piesToUnfreeze = visiblePieData.filter(function(d) {return d.selected==1; });
+            nodesToUnfreeze = circleData.filter(function(d) { return d.selected==1; });
+            piesToUnfreeze = visiblePieData.filter(function(d) { return d.selected==1; });
             toUnfreeze = nodesToUnfreeze.concat(piesToUnfreeze);
             toUnfreeze.forEach(function(d){
                 d.fixed=false;
@@ -266,8 +308,8 @@ function update(){
     d3.select("#collapse")
         .on("click", function() {
             //FIND all selected nodes and pies
-            nodesToCollapse = circleData.filter(function(d) {return d.selected==1; });
-            piesToCollapse = visiblePieData.filter(function(d) {return d.selected==1; });
+            nodesToCollapse = circleData.filter(function(d) { return d.selected==1; });
+            piesToCollapse = visiblePieData.filter(function(d) { return d.selected==1; });
             toCollapse = nodesToCollapse.concat(piesToCollapse);
 
             //SIZE OF NEW PIE 
@@ -306,7 +348,7 @@ function update(){
                     'selected': 0,
                     'previouslySelected': 0,
                     'inPie': -1,
-                    'colors': [sizeGrp0, sizeGrp1],     //TODO: deal with more than two grps
+                    'colors': [sizeGrp0, sizeGrp1],     //TODO: deal with more than two grps (create color array above)
                     'x': loc[0],
                     'y': loc[1]
                 };
@@ -396,7 +438,7 @@ function update(){
           })
         .attr("r", 5)
         .on("dblclick",unfreeze)
-        .style("fill", function(d) { return color(d.group); }) //color nodes based on group
+        .style("fill", function(d) { return color(d.group[partition]); }) //color nodes based on group
         .call(force.drag);
 
     //exit old nodes    
@@ -474,8 +516,7 @@ function update(){
           .on("brushend", function() {
             d3.event.target.clear();
             d3.select(this).call(d3.event.target);
-          }));
-
+          }));  
 };
 
 //TODO: DO WE EVER USE THIS FUNCTION????
