@@ -1,4 +1,18 @@
 {
+	"parts": [
+		{
+			"name": 0,
+			"size": 6,
+			"communities":[[0],[1],[2],[3],[4],[5]],
+			"res": 0
+		},
+		{
+			"name": 1,
+			"size": 3,
+			"communities":[[0,1],[2],[3,4,5]],
+			"res": 0.2
+		}
+	],
 	"nodes": [
 		{
 			"name": 0,
@@ -7,27 +21,27 @@
 		},
 		{
 			"name": 1,
-			"group": [0,0],
+			"group": [1,0],
 			"collapsed": 0
 		},
 		{
 			"name": 2,
-			"group": [0,1],
+			"group": [2,1],
 			"collapsed": 0
 		},
 		{
 			"name": 3,
-			"group": [0,2],
+			"group": [3,2],
 			"collapsed": 0
 		},
 		{
 			"name": 4,
-			"group": [1,2],
+			"group": [4,2],
 			"collapsed": 0
 		},
-				{
+		{
 			"name": 5,
-			"group": [1,2],
+			"group": [5,2],
 			"collapsed": 0
 		}
 	],
