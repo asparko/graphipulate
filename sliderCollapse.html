@@ -1,155 +1,48 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 
-<style>
-
-.circles {
-  stroke: #fff;
-  stroke-width: 1.5px;
-}
-
-.circles .selected {
-  stroke: black;
-}
-
-.collapsed {
-  stroke: white;  
-}
-
-.collapsed .selected{
-  stroke: black;
-  stroke-width: 1.5px;
-}
-
-.link {
-  stroke: #999;
-  stroke-opacity: .6;
-}
-
-.brush .extent {
-  fill-opacity: .1;
-  stroke: #fff;
-  shape-rendering: crispEdges;
-}
-
-.sliders {
-    height: 50px;
-    width: 500px;
-}
-
-/* .json ENTRY FIELD */
-input[type="text"] {
-  display: block;
-  margin: 0;
-  width: 200px;
-  font-family: sans-serif;
-  font-size: 10px;
-  appearance: none;
-  box-shadow: none;
-  border-radius: none;
-}
-input[type="text"]:focus {
-  outline: none;
-}
-
-.input {
-  font-family: sans-serif;
-  font-size: 12px; 
-  color: #c9c9c9;
-}
-.input input[type="text"] {
-  padding: 10px;
-  border: solid 5px #c9c9c9;
-  transition: border 0.3s;
-}
-.input input[type="text"]:focus,
-.input input[type="text"].focus {
-  border: solid 5px #969696;
-}
- 
-/* BUTTONS */
-.myButton {
-    -moz-box-shadow: 0px 5px 8px -6px #6c6e6e;
-    -webkit-box-shadow: 0px 5px 8px -6px #6c6e6e;
-    box-shadow: 0px 5px 8px -6px #6c6e6e;
-    background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #d1d1d1), color-stop(1, #adadad));
-    background:-moz-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
-    background:-webkit-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
-    background:-o-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
-    background:-ms-linear-gradient(top, #d1d1d1 5%, #adadad 100%);
-    background:linear-gradient(to bottom, #d1d1d1 5%, #adadad 100%);
-    /*filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#d1d1d1', endColorstr='#adadad',GradientType=0);*/
-    background-color:#d1d1d1;
-    -moz-border-radius:4px;
-    -webkit-border-radius:4px;
-    border-radius:4px;
-    display:inline-block;
-    cursor:pointer;
-    color:#ffffff;
-    font-family:sans-serif;
-    font-size:14px;
-    font-weight:bold;
-    padding:8px 12px;
-    text-decoration:none;
-}
-.myButton:hover {
-    background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #adadad), color-stop(1, #d1d1d1));
-    background:-moz-linear-gradient(top, #adadad 5%, #d1d1d1 100%);
-    background:-webkit-linear-gradient(top, #adadad 5%, #d1d1d1 100%);
-    background:-o-linear-gradient(top, #adadad 5%, #d1d1d1 100%);
-    background:-ms-linear-gradient(top, #adadad 5%, #d1d1d1 100%);
-    background:linear-gradient(to bottom, #adadad 5%, #d1d1d1 100%);
-    /*filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#adadad', endColorstr='#d1d1d1',GradientType=0);*/
-    background-color:#adadad;
-}
-.myButton:active {
-    position:relative;
-    top:1px;
-}
-
-
-</style>
-<link rel="stylesheet" href="d3.slider.css" />  
+<!-- ********   STYLES  ********* -->
+<link rel="stylesheet" href="sliderScript.css" />  
+<link rel="stylesheet" href="graphipulate.css" /> 
 
 
 <!-- ********   MAIN DOCUMENT BODY  ********* -->
 <body>
 
-<!-- file entry file -->
-<div id="data">
+<!-- file entry  -->
+<div align = "middle" style="width: 100%; overflow: hidden;" id = "data">
     <form class="input" name="jsonform" onsubmit="return false;">
-        <a>Enter .json data file name: </a>
-        <input type="text" id="file" placeholder=".json">
-        <input type="button" id="upload" value="upload">
-    </form>
+    <a>Enter .json data file name: </a>
+    <input type="text" id="file" placeholder=".json">
 </div>
 
-<!-- file entry file -->
+<div align="middle" style="width: 100%; margin-top:10px; margin-bottom:10px">
+    <a id="upload" class="myButton">upload</a>
+</div>
+
+<svg height = "20" width = "50"/>    <!-- to create vertical spacing -->
+
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script src="colorSlider.js"></script>   <!-- sets col_value variable -->
+<script src="commSlider.js"></script>    <!-- sets comm_value variable -->
+
+<div align="middle" style="width: 100%; overflow: hidden;" id = "labels">
+    <div style="width: 580px; float: left; margin-left:40px" class="input"> Color</div>
+    <div style="margin-left: 600px;" class="input"> Community</div>
+</div>
+
+<svg height = "20" width = "50"/>    <!-- to create vertical spacing -->
+
 <div align="middle">
     <a id="collapse" class="myButton">collapse</a>
     <a href="#" id="freeze" class="myButton">pin</a>
     <a href="#" id="unfreeze" class="myButton">un-pin</a>
 </div>
 
-<svg height = "20" width = "50"/>    <!-- to create vertical spacing -->
-
-<div align = "middle">
-    <div id = "slider1" height = "35px"></div>
-</div>
-
-<svg height = "20" width = "50"/>   <!-- to create vertical spacing -->
-
-<div align = "middle">
-    <div id="slider2"></div>
-</div>
-
-<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
-<script src="d3.slider.js"></script>
-
 <!-- GRAPHIPULATE SCRIPT -->
 <script>
 
-var width = 960,
+var width = 1250,
     height = 500,
     shiftKey,
     graph;
@@ -218,33 +111,10 @@ var brush = svg.append("g")
     .datum(function() { return {selected: false, previouslySelected: false}; })
     .attr("class", "brush");
 
-//TODO: fix step snaps of slider somehow
 
-//COLOR SLIDER
-d3.select('#slider1')
-    .attr("class","slider")
-    .call(d3.slider()
-        .axis(d3.svg.axis())
-        .snap(true).min(0).max(10).step(0.5)
-        .on("slideend", function(evt, value) {
-            partition_color=value;
-            update();
-        }));
-
-//COMMUNITY SLIDER
-d3.select('#slider2')
-    .attr("class","slider")
-    .call(d3.slider()
-        .axis(d3.svg.axis())
-        .snap(true).min(0).max(10).step(0.5)
-        .on("slideend", function(evt, value) {
-            partition_commun=value;
-            update();
-        }));
-
-
-//JSON FILE ENTRY
-if (fileEntered==0){    //start with a default data file
+//  ***********     JSON FILE ENTRY  ***************
+//start with a default data file
+if (fileEntered==0){    
     d3.json("graphData.json", function(error, json) {
         graph = json;   //give data a global variable name so can use it in update()
         graph.nodes.forEach(function(d) { 
@@ -267,7 +137,7 @@ if (fileEntered==0){    //start with a default data file
     });
 };
 
-
+//user defined data file
 d3.select("#upload").on("click",function(){
     fileEntered=1;
     d3.select("#data").call(function(){
@@ -358,12 +228,22 @@ function update(){
 
             //SIZE OF NEW PIE 
             var sizeToCollapse = 0; 
-            var sizeGrp0 = 0;
-            var sizeGrp1 = 0;         
+            var sizeGrps = [];
+            for (var i = 0; i < numPartitions; i++) {           //make color 2d array
+                sizeGrps[i] = [];
+                for (var j = 0; j < numCommunities[i]; j++) {   //initialize color arrays to all zeros
+                    sizeGrps[i][j] = 0;
+                };
+            };      
+
             piesToCollapse.forEach(function(d){         //number of nodes already in selected pies
                 sizeToCollapse += d.size;  
-                sizeGrp0 += d.colors[0];                //TODO: fix for more than 2 grps
-                sizeGrp1 += d.colors[1]; 
+                for (var i = 0; i < numPartitions; i++) {
+                    sizeGrps[i][d.group[i]]+= d.;          //add one to each collapsed node's group in each partition
+                };
+                //sizeGrps[d.group[col_value]] ++;
+                //sizeGrp0 += d.colors[0];                //TODO: fix for more than 2 grps
+                //sizeGrp1 += d.colors[1]; 
             });
             sizeToCollapse += nodesToCollapse.length;   //add the new indiv nodes
 
@@ -373,15 +253,14 @@ function update(){
             //COLLAPSE SELECTED NODES AND PIES
             toCollapse.forEach(function(d){
                 d.collapsed=1;
+                for (var i = 0; i < numPartitions; i++) {
+                    sizeGrps[i][d.group[i]]++;          //add one to each collapsed node's group in each partition
+                };
+                //sizeGrps[d.group[col_value]] ++;
                 d.inPie=currPieName;                    //keep track of which pie the collapsed nodes are in 
             });
 
-            //TODO: FIX THIS IN CASE THERE ARE MORE THAN TWO GRPS! 
-            //add indiv nodes to group count
-            var grp0 = nodesToCollapse.filter(function(d) {return d.group==0; });
-            sizeGrp0 += grp0.length;                    
-            var grp1 = nodesToCollapse.filter(function(d) {return d.group==1; });
-            sizeGrp1 += grp1.length;
+            console.log(sizeGrps);
 
             //CREATE NEW PIE
             var newPie = {
@@ -392,7 +271,7 @@ function update(){
                     'selected': 0,
                     'previouslySelected': 0,
                     'inPie': -1,
-                    'colors': [sizeGrp0, sizeGrp1],     //TODO: deal with more than two grps (create color array above)
+                    'colors': sizeGrps,     //TODO: deal with more than two grps (create color array above)
                     'x': loc[0],
                     'y': loc[1]
                 };
@@ -482,7 +361,7 @@ function update(){
           })
         .attr("r", 5)
         .on("dblclick",unfreeze)
-        .style("fill", function(d) { return color(d.group[partition_color]); }) //color nodes based on group
+        .style("fill", function(d) { return color(d.group[col_value]); }) //color nodes based on group
         .call(force.drag);
 
     //exit old nodes    
@@ -516,7 +395,7 @@ function update(){
             .data(function(){                               //colors pie based on number of nodes in each group
                 if (numberPies > 0) {
                 	var ind = getIndex(this);
-                    return pie(pieData[ind].colors);
+                    return pie(pieData[ind].colors[col_value]);
                 }
                 else
                     return pie([10]);

@@ -116,7 +116,7 @@ var brush = svg.append("g")
     .datum(function() { return {selected: false, previouslySelected: false}; })
     .attr("class", "brush");
 
-d3.json("multiGroupTestData.json", function(error, json) {
+d3.json("graphData.json", function(error, json) {
     graph = json;                       //give data a global variable name so can use it in update()
     graph.nodes.forEach(function(d) { 
     		d.collapsed=0; 
