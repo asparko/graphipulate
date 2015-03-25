@@ -1,12 +1,12 @@
 //Use this to position and size the slider svg
 
-var margin = {top: 5, right: 5, bottom: 5, left: 5},
-    width = 600 - margin.left - margin.right,
+var margin = {top: 5, right: 5, bottom: 5, left: 50},
+    width = 610 - margin.left - margin.right,
     height = 40 - margin.bottom - margin.top;
 
 var x_col = d3.scale.linear()
     .domain([0, 10])
-    .range([30, width-40])
+    .range([10, width-10])
     .clamp(true);
 
 var color_brush = d3.svg.brush()
@@ -66,6 +66,7 @@ function brushed() {
 function output() {
   col_value = color_brush.extent()[0];
   col_value = Math.round(col_value);
-  console.log(col_value);
-  update();
+  if (fileEntered ==1){
+    update();
+  };
 }

@@ -1,11 +1,11 @@
 //Position and size the slider svg
-var margin = {top: 5, right: 5, bottom: 5, left: 5},
-    width = 600 - margin.left - margin.right,
+var margin = {top: 5, right: 50, bottom: 5, left: 5},
+    width = 610 - margin.left - margin.right,
     height = 40 - margin.bottom - margin.top;
 
 var x = d3.scale.linear()
     .domain([0, 10])              //default to 10 partitions. update when file entered by user.
-    .range([10, width-60])
+    .range([10, width-10])
     .clamp(true);
 
 var part_value;
@@ -20,7 +20,7 @@ var svgPSlide = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
   .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    .attr("transform", "translate(" + 45 + "," + margin.top + ")");
 
 svgPSlide.append("g")
     .attr("class", "x axis")
@@ -65,5 +65,7 @@ function brushed() {
 function output() {
   part_value = community_brush.extent()[0];
   part_value = Math.round(part_value);
-  update();
+  if (fileEntered ==1){
+    update();
+  };
 }

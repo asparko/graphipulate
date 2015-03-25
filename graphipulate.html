@@ -20,10 +20,11 @@
     <a id="upload" class="myButton">upload</a>
 </div>
 
-<svg height = "20" width = "50"/>    <!-- to create vertical spacing -->
+<!-- <svg height = "20" width = "50"/>  -->   <!-- to create vertical spacing -->
 
 <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
 <script src="http://d3js.org/colorbrewer.v1.min.js"></script>
+
 <!-- TODO: set size of sliders based on data?? 
            have a default size, then reset once data is loaded?
            but can't call everytime we do update else user-defined partitions will be deleted 
@@ -37,7 +38,7 @@
 
 <div align="middle" style="width: 100%; overflow: hidden;" id = "labels">   <!-- slider labels -->
     <div style="width: 580px; float: left; margin-left:40px" class="input"> Color</div>
-    <div style="margin-left: 600px;" class="input"> Community</div>
+    <div style="margin-left: 580px;" class="input"> Community</div>
 </div>
 
 <svg height = "20" width = "50"/>    <!-- to create vertical spacing -->
@@ -48,9 +49,10 @@
     <a href="#" id="unfreeze" class="myButton">un-pin</a>
 </div>
 
-<!-- GRAPHIPULATE SCRIPT -->
+<!--   *****************************************   GRAPHIPULATE SCRIPT   *****************************************   -->
 <script>
 
+/******    INITIALIZE SOME VARIABLES!    ******/
 var width = 1250,
     height = 500,
     shiftKey,
@@ -71,6 +73,10 @@ var force = d3.layout.force()
     .linkDistance(100)
     .size([width, height]);
 
+var brush = svg.append("g")
+    .datum(function() { return {selected: false, previouslySelected: false}; })
+    .attr("class", "brush");
+
 var arc = d3.svg.arc();
 
 var pie = d3.layout.pie().padAngle(.02);
@@ -89,9 +95,6 @@ var link,
     pies2,
     numberPies=0,
     currPieName=0,
-
-    partition_color=0;
-    partition_commun=0;
 
     numNodes = 0,                           //total number of nodes
     numPartitions = 0,                      //num different partitions
@@ -115,15 +118,13 @@ var link,
     
     insideLinks = [],
     interLinks = [],
-    interLinks_orig =[];
+    //interLinks_orig =[];
 
 
-var brush = svg.append("g")
-    .datum(function() { return {selected: false, previouslySelected: false}; })
-    .attr("class", "brush");
 
 
-//  ***********     JSON FILE ENTRY  ***************
+
+//  ***********     JSON FILE ENTRY  *************** //
 //start with a default data file
 if (fileEntered==0){    
     d3.json("graphData.json", function(error, json) {
@@ -187,7 +188,7 @@ d3.select("#upload").on("click",function(){
         radiusScale.domain([1,numNodes])
             .range([5,40]);
 
-        //Update Slider Scales to reflect actual data    
+        //Update Slider Scales to reflect actual user data    
         x.domain([0,numPartitions-1]); 
         x_col.domain([0,numPartitions-1]);    
         var partAxis = d3.svg.axis()
