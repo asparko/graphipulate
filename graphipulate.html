@@ -24,10 +24,18 @@
 
 <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
 <script src="http://d3js.org/colorbrewer.v1.min.js"></script>
-<script src="colorSlider.js"></script>   <!-- sets col_value variable -->
-<script src="commSlider.js"></script>    <!-- sets comm_value variable -->
+<!-- TODO: set size of sliders based on data?? 
+           have a default size, then reset once data is loaded?
+           but can't call everytime we do update else user-defined partitions will be deleted 
+-->
+<script>
+    var fileEntered = 0;
+</script>   <!-- initializes variable needed by sliders -->
 
-<div align="middle" style="width: 100%; overflow: hidden;" id = "labels">
+<script src="colorSlider.js"></script>   <!-- sets col_value variable -->
+<script src="partSlider.js"></script>    <!-- sets part_value variable -->
+
+<div align="middle" style="width: 100%; overflow: hidden;" id = "labels">   <!-- slider labels -->
     <div style="width: 580px; float: left; margin-left:40px" class="input"> Color</div>
     <div style="margin-left: 600px;" class="input"> Community</div>
 </div>
@@ -55,7 +63,6 @@ var colorPalette = ["#fee08b","#3288bd","#9e0142","#f46d43","#abdda4","#dae892",
 var color = d3.scale.ordinal()
     .range(colorPalette);
 
-
 var radiusScale = d3.scale.log();
 
 var force = d3.layout.force()
@@ -63,8 +70,6 @@ var force = d3.layout.force()
     .charge(-200)
     .linkDistance(100)
     .size([width, height]);
-
-var fileEntered = 0;
 
 var arc = d3.svg.arc();
 
@@ -181,8 +186,28 @@ d3.select("#upload").on("click",function(){
             }); 
         radiusScale.domain([1,numNodes])
             .range([5,40]);
-        update();
 
+        //Update Slider Scales to reflect actual data    
+        x.domain([0,numPartitions-1]); 
+        x_col.domain([0,numPartitions-1]);    
+        var partAxis = d3.svg.axis()
+                .ticks(numPartitions-1)
+                .scale(x)
+                .orient("bottom")
+                .tickFormat(function(d) { return d; })
+                .tickSize(0)
+                .tickPadding(12);
+        var colAxis = d3.svg.axis()
+                .ticks(numPartitions-1)
+                .scale(x_col)
+                .orient("bottom")
+                .tickFormat(function(d) { return d; })
+                .tickSize(0)
+                .tickPadding(12);
+        svgPSlide.selectAll(".x.axis").call(partAxis);     //update partition axis svg
+        svgCSlide.selectAll(".x.axis").call(colAxis);      //update color axis svg
+
+        update();
         });
     });
 });
@@ -197,6 +222,11 @@ function update(){
     var allNodes = circleData.concat(visiblePieData);   
 
     //TODO: Community Slider Functionality
+    // Make new pies just using that particular partition
+    // Can users expand a pie into its internal pies? NO, not necessarily hierarchical. Just allow expansion into indiv nodes
+    // Can users collapse/combine part of a given partition? Maybe?
+
+    //TODO: Hover over node to reveal name/info
 
     //freeze button
     d3.select("#freeze")
@@ -329,7 +359,6 @@ function update(){
         .style("stroke-width", function(d) { return Math.sqrt(d.value); });
 
     //enter new links
-    //TODO: change this to reflect stacks of sources and targets
     link.enter().insert("line",".uncollapsed") //insert before any ".uncollapsed" elements
         .attr("class","link")
         .attr("x1", function(d) { return d.source.x; })
@@ -342,7 +371,7 @@ function update(){
 
 
     //UPDATE CIRCLES *****************************************************
-    svg.selectAll(".circles").remove(); //delete old circles...not sure a clever way around this
+    svg.selectAll(".circles").remove();     //delete old circles
 
     circles = svg.insert("g")
         .attr("class","circles")
@@ -352,7 +381,6 @@ function update(){
     circles.enter().insert("circle") 
         .attr("class", function(d){         //Leaves recently expanded nodes selected so user can recollapse if needed
             if(d.selected == 1){
-                console.log(d);
                 return "selected";
             };
         })
@@ -396,7 +424,6 @@ function update(){
         .attr("class", "collapsed")
         .attr("class", function(d){         //Leaves recently expanded nodes selected so user can recollapse if needed
             if(d.selected == 1){
-                console.log(d);
                 return "selected";
             };
         })
@@ -454,12 +481,12 @@ function update(){
           }));  
 };
 
-//TODO: DO WE EVER USE THIS FUNCTION????
-function unfreeze(d){
-    d.fixed=false;
-    tick();
-    force.resume();
-}
+// //TODO: DO WE EVER USE THIS FUNCTION????
+// function unfreeze(d){
+//     d.fixed=false;
+//     tick();
+//     force.resume();
+// }
 
 function getIndex(data){
     var parentName = d3.select(data.parentNode).datum().name;
@@ -472,24 +499,24 @@ function getRadius(data){
     return radiusScale(radius);
 }
 
-//TODO: Might be able to remove this function!! :)
-function deepCopy(obj) {
-    if (Object.prototype.toString.call(obj) === '[object Array]') {
-        var out = [], i = 0, len = obj.length;
-        for ( ; i < len; i++ ) {
-            out[i] = arguments.callee(obj[i]);
-        }
-        return out;
-    }
-    if (typeof obj === 'object') {
-        var out = {}, i;
-        for ( i in obj ) {
-            out[i] = arguments.callee(obj[i]);
-        }
-        return out;
-    }
-    return obj;
-}
+// //TODO: Might be able to remove this function!! :)
+// function deepCopy(obj) {
+//     if (Object.prototype.toString.call(obj) === '[object Array]') {
+//         var out = [], i = 0, len = obj.length;
+//         for ( ; i < len; i++ ) {
+//             out[i] = arguments.callee(obj[i]);
+//         }
+//         return out;
+//     }
+//     if (typeof obj === 'object') {
+//         var out = {}, i;
+//         for ( i in obj ) {
+//             out[i] = arguments.callee(obj[i]);
+//         }
+//         return out;
+//     }
+//     return obj;
+// }
 
 function findCenter(data){
     var avgX=0, avgY=0, size;
@@ -507,8 +534,15 @@ function findCenter(data){
 function expand(d){
 	if (d3.event.defaultPrevented) return; //prevents click behavior if pie is being dragged
 	
-	var thisPie = d.name;
+    //Deselect everything to start so that only recently expanded will be selected
+    graph.nodes.forEach(function(d){
+        d.selected=0;
+    });
+    pieData.forEach(function(d){
+        d.selected=0;
+    });
 
+	var thisPie = d.name;
 	var insideNodes = graph.nodes.filter(function(d) {return d.inPie==thisPie; });
     var insidePies = pieData.filter(function(d) {return d.inPie==thisPie; });
 	var insideLinks = graph.links.filter(function(d) {return d.inPie==thisPie; });
@@ -516,15 +550,13 @@ function expand(d){
 	insideNodes.forEach(function(d){
 		d.collapsed = 0;
 		d.inPie = -1;
-        //TODO: this leaves recent expansion as selected, but it isn't outlined in black for some reason.
-        d.selected = 1;
+        d.selected = 1;                                     //so recently expanded nodes will be selected
 	});
 
     insidePies.forEach(function(d){
         d.collapsed = 0;
         d.inPie = -1;
-        //TODO: Try this for leaving expanded as selected
-        d.selected = 1;
+        d.selected = 1;                                     //so recently expanded pies will be selected
     });
 
 	insideLinks.forEach(function(d){
@@ -547,7 +579,7 @@ function expand(d){
 
 	var pieIndex = pieNames.indexOf(thisPie);
 
-	pieData.splice(pieIndex,1);
+	pieData.splice(pieIndex,1);                            //delete data of just-expanded pie
 	pieNames.splice(pieIndex,1);
 
 	update();

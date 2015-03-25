@@ -17,13 +17,13 @@ var color_brush = d3.svg.brush()
 
 var col_value;
 
-var svg = d3.select("body").append("svg")
+var svgCSlide = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-svg.append("g")
+svgCSlide.append("g")
     .attr("class", "x axis")
     .attr("transform", "translate(0," + height / 2 + ")")
     .call(d3.svg.axis()
@@ -36,7 +36,7 @@ svg.append("g")
   .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
     .attr("class", "halo");
 
-var color_slider = svg.append("g")
+var color_slider = svgCSlide.append("g")
     .attr("class", "slider")
     .call(color_brush);
 
