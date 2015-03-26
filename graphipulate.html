@@ -124,28 +124,28 @@ var link,
 
 //  ***********     JSON FILE ENTRY  *************** //
 //start with a default data file
-if (fileEntered==0){    
-    d3.json("graphData.json", function(error, json) {
-        graph = json;   //give data a global variable name so can use it in update()
-        graph.nodes.forEach(function(d) { 
-            d.collapsed=0; 
-            d.selected=0;
-            d.previouslySelected=0;
-            d.inPie=-1;
-        }); 
-        graph.links.forEach(function(d) { 
-            d.collapsed=0; 
-            d.selected=0;
-            d.inPie=-1;
-            d.sourceArr=[graph.nodes[d.source]];     //create stacks for hierarchical sources and targets
-            d.targetArr=[graph.nodes[d.target]];
-        }); 
-        radiusScale.domain([1,graph.nodes.length])
-            .range([5,40]);    
+// if (fileEntered==0){    
+//     d3.json("graphData.json", function(error, json) {
+//         graph = json;   //give data a global variable name so can use it in update()
+//         graph.nodes.forEach(function(d) { 
+//             d.collapsed=0; 
+//             d.selected=0;
+//             d.previouslySelected=0;
+//             d.inPie=-1;
+//         }); 
+//         graph.links.forEach(function(d) { 
+//             d.collapsed=0; 
+//             d.selected=0;
+//             d.inPie=-1;
+//             d.sourceArr=[graph.nodes[d.source]];     //create stacks for hierarchical sources and targets
+//             d.targetArr=[graph.nodes[d.target]];
+//         }); 
+//         radiusScale.domain([1,graph.nodes.length])
+//             .range([5,40]);    
 
-        update();
-    });
-};
+//         update();
+//     });
+// };
 
 //user defined data file
 d3.select("#upload").on("click",function(){
@@ -220,13 +220,10 @@ d3.select("#upload").on("click",function(){
 
 /******    UPDATE!    ******/
 function update(){
-
     var circleData = graph.nodes.filter(function(d) {return d.collapsed==0; });
     var visiblePieData = pieData.filter(function(d) {return d.collapsed==0; });
     var visibleLinks = graph.links.filter(function(d) {return d.collapsed==0; });   
-    //var visiblePieData = visiblePieData.concat(basePieData);      //Include any pies from current partition slider value
     var allNodes = circleData.concat(visiblePieData);   
-
 
     //TODO: Hover over node to reveal name/info
 
@@ -515,32 +512,34 @@ function setBasePies(){
         for (var i = 0; i < numCommunities[part_value]; i++) {
             toCollapse = graph.nodes.filter(function(d) { return d.group[part_value]==i; });
             var sizeToCollapse = toCollapse.length;         //num nodes in this particular group
-            var colors = getColors(toCollapse);             //colors based on color slider value, and "collapses" all nodes
-            var loc = findCenter(toCollapse); 
+            
+            if (sizeToCollapse>1){
+                var colors = getColors(toCollapse);             //colors based on color slider value, and "collapses" all nodes
+                var loc = findCenter(toCollapse); 
 
-            //CREATE NEW PIE
-            var newPie = {
-                    'size': sizeToCollapse,             //num of nodes in collapsed group
-                    'name': currPieName,
-                    'group': -1,                        //a group of -1 identifies it as a pie
-                    'collapsed': 0, 
-                    'selected': 0,
-                    'previouslySelected': 0,
-                    'inPie': -1,
-                    'colors': colors,                    
-                    'x': loc[0],
-                    'y': loc[1]
-                };
-            pieData.push(newPie);
-            pieNames.push(currPieName);
-            
-            collapseLinks(newPie);                      //collapses links inside this new pie  
-            
-            numberPies++;
-            currPieName++;  
+                //CREATE NEW PIE
+                var newPie = {
+                        'size': sizeToCollapse,             //num of nodes in collapsed group
+                        'name': currPieName,
+                        'group': -1,                        //a group of -1 identifies it as a pie
+                        'collapsed': 0, 
+                        'selected': 0,
+                        'previouslySelected': 0,
+                        'inPie': -1,
+                        'colors': colors,                    
+                        'x': loc[0],
+                        'y': loc[1]
+                    };
+                pieData.push(newPie);
+                pieNames.push(currPieName);
+                
+                collapseLinks(newPie);                      //collapses links inside this new pie  
+                
+                numberPies++;
+                currPieName++;
+            };
         };
         setInterLinks();
-        //console.log(interLinks);
         update();   
     };
 }
@@ -579,15 +578,17 @@ function collapseLinks(newPie){
 function setInterLinks(){
     //ADJUSTS LINKS BETWEEN PIES
     var visibleLinks = graph.links.filter(function(d) { return d.collapsed==0; });
-    console.log(visibleLinks);
     visibleLinks.forEach(function(d){
-        d.sourceArr.push(pieData[d.source.inPie]);
-        d.source = pieData[d.source.inPie];
-        d.targetArr.push(pieData[d.target.inPie]);
-        d.target= pieData[d.target.inPie];
+        if (d.source.inPie !== -1){                     //ensures no size-1 pies are created
+            d.sourceArr.push(pieData[d.source.inPie]);
+            d.source = pieData[d.source.inPie];
+        };
+        if (d.target.inPie !== -1){                     //ensures no size-1 pies are created
+            d.targetArr.push(pieData[d.target.inPie]);
+            d.target= pieData[d.target.inPie];
+        };
         interLinks.push(d);
     });
-    console.log(interLinks);
 };
 
 function getIndex(data){

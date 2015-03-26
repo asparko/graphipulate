@@ -2,128 +2,103 @@
 	"nodes": [
 		{
 			"name": 0,
-			"group": 1,
-			"collapsed": 0
+			"group": [0,0,0,0,0,0,0,0]
 		},
 		{
 			"name": 1,
-			"group": 1,
-			"collapsed": 0
+			"group": [1,0,0,0,0,0,0,0]
 		},
 		{
 			"name": 2,
-			"group": 0,
-			"collapsed": 0
+			"group": [2,1,1,0,0,0,0,0]
 		},
 		{
 			"name": 3,
-			"group": 1,
-			"collapsed": 0
+			"group": [3,1,1,1,0,0,0,0]
 		},
 		{
 			"name": 4,
-			"group": 0,
-			"collapsed": 0
+			"group": [4,2,1,1,0,0,0,0]
 		},
 		{
 			"name": 5,
-			"group": 0,
-			"collapsed": 0
+			"group": [5,2,2,1,1,0,0,0]
 		},
 		{
 			"name": 6,
-			"group": 0,
-			"collapsed": 0
+			"group": [6,3,2,2,1,1,0,0]
 		},
 		{
 			"name": 7,
-			"group": 0,
-			"collapsed": 0
+			"group": [7,4,3,2,2,1,0,0]
 		},
 		{
 			"name": 8,
-			"group": 1,
-			"collapsed": 0
+			"group": [8,4,3,2,2,2,0,0]
 		},
 		{
 			"name": 9,
-			"group": 1,
-			"collapsed": 0
+			"group": [9,5,3,3,2,2,1,0]
 		},
 		{
 			"name": 10,
-			"group": 0,
-			"collapsed": 0
+			"group": [10,6,4,3,3,2,1,0]
 		},
 		{
 			"name": 11,
-			"group": 1,
-			"collapsed": 0
+			"group": [11,7,4,4,3,3,1,0]
 		},
 		{
 			"name": 12,
-			"group": 1,
-			"collapsed": 0
+			"group": [12,7,4,4,3,3,1,0]
 		},
 		{
 			"name": 13,
-			"group": 0,
-			"collapsed": 0
+			"group": [13,8,5,4,4,3,1,0]
 		},
 		{
 			"name": 14,
-			"group": 1,
-			"collapsed": 0
+			"group": [14,8,5,5,4,3,1,0]
 		},
 		{
 			"name": 15,
-			"group": 0,
-			"collapsed": 0
+			"group": [15,9,6,5,4,3,1,0]
 		},
 		{
 			"name": 16,
-			"group": 0,
-			"collapsed": 0
+			"group": [16,9,6,5,4,3,2,0]
 		},
 		{
 			"name": 17,
-			"group": 1,
-			"collapsed": 0
+			"group": [17,10,6,5,4,3,2,0]
 		},
 		{
 			"name": 18,
-			"group": 1,
-			"collapsed": 0
+			"group": [18,10,7,5,5,3,2,0]
 		},
 		{
 			"name": 19,
-			"group": 1,
-			"collapsed": 0
+			"group": [19,11,7,6,5,3,2,0]
 		},
 		{
 			"name": 20,
-			"group": 1,
-			"collapsed": 0
+			"group": [20,12,7,6,5,3,2,0]
 		},
 		{
 			"name": 21,
-			"group": 0,
-			"collapsed": 0
+			"group": [21,13,8,6,5,3,2,0]
 		},
 		{
 			"name": 22,
-			"group": 1,
-			"collapsed": 0
+			"group": [22,13,8,7,5,4,2,0]
 		},
 		{
 			"name": 23,
-			"group": 1,
-			"collapsed": 0
+			"group": [23,14,8,7,6,4,2,0]
 		},
 		{
 			"name": 24,
-			"group": 1,
-			"collapsed": 0
+			"group": [24,15,8,7,6,4,2,0]
 		}
 	],
 	"links": [
