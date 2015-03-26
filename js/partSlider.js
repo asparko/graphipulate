@@ -65,7 +65,8 @@ function brushed() {
 function output() {
   part_value = community_brush.extent()[0];
   part_value = Math.round(part_value);
-  if (fileEntered ==1){
-    update();
+  if (fileEntered ==1){                   //TODO: Check if this is necessary. Should we not allow for the default file?
+    //update();
+    setBasePies();
   };
 }
