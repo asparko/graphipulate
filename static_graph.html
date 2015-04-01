@@ -53,7 +53,7 @@ var node = svg.append("g")
     .attr("class", "node")
   .selectAll("circle");
 
-d3.json("python/fr2.js", function(error, graph) {
+d3.json("python/kk3000.js", function(error, graph) {
 
   graph.links.forEach(function(d) {
     d.source = graph.nodes[d.source];
