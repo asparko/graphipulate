@@ -54,16 +54,17 @@
 
 /******    INITIALIZE SOME VARIABLES!    ******/
 var width = 1250,
-    height = 500,
+    height = 800,
     shiftKey,
     graph;
 
 //built in D3 color palatte
-//var color = d3.scale.category20b();
-var colorPalette = ["#fee08b","#3288bd","#9e0142","#f46d43","#abdda4","#dae892","#fdae61","#66c2a5","#d53e4f","#5e4fa2"];
+var color = d3.scale.category20b();
 
-var color = d3.scale.ordinal()
-    .range(colorPalette);
+// var colorPalette = ["#99B2CC","#3288bd","#9e0142","#f46d43","#abdda4","#dae892","#fdae61","#66c2a5","#d53e4f","#5e4fa2"];
+
+// var color = d3.scale.ordinal()
+//     .range(colorPalette);
 
 var radiusScale = d3.scale.log();
 
@@ -375,7 +376,7 @@ function update(){
     circles = svg.insert("g")
         .attr("class","circles")
         .selectAll(".circles")
-        .data(circleData, function(d) {return d.name; });
+        .data(circleData, function(d) {return d.id; });
 
     circles.enter().insert("circle") 
         .attr("class", function(d){         //Leaves recently expanded nodes selected so user can recollapse if needed
