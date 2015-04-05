@@ -67,11 +67,16 @@ var color = d3.scale.category20b();
 //     .range(colorPalette);
 
 var radiusScale = d3.scale.log();
+var linkScale = d3.scale.log();
+var chargeScale = d3.scale.log();
 
 var force = d3.layout.force()
     .on("tick",tick)
-    .charge(-200)
+    .charge(-800)
+    .gravity(0.55)
+    //.friction(0.7)
     .linkDistance(100)
+    .linkStrength(0.3)
     .size([width, height]);
 
 var arc = d3.svg.arc();
@@ -119,34 +124,10 @@ var link,
 	pieNames = [], //easily searchable array of pieNames that will match the ordering of pieData for easy deletion of pies
     
     insideLinks = [],
-    interLinks = [];
-    //interLinks_orig =[];
+    interLinks = [],
 
+    first=true;
 
-//  ***********     JSON FILE ENTRY  *************** //
-//start with a default data file
-// if (fileEntered==0){    
-//     d3.json("graphData.json", function(error, json) {
-//         graph = json;   //give data a global variable name so can use it in update()
-//         graph.nodes.forEach(function(d) { 
-//             d.collapsed=0; 
-//             d.selected=0;
-//             d.previouslySelected=0;
-//             d.inPie=-1;
-//         }); 
-//         graph.links.forEach(function(d) { 
-//             d.collapsed=0; 
-//             d.selected=0;
-//             d.inPie=-1;
-//             d.sourceArr=[graph.nodes[d.source]];     //create stacks for hierarchical sources and targets
-//             d.targetArr=[graph.nodes[d.target]];
-//         }); 
-//         radiusScale.domain([1,graph.nodes.length])
-//             .range([5,40]);    
-
-//         update();
-//     });
-// };
 
 //user defined data file
 d3.select("#upload").on("click",function(){
@@ -189,7 +170,11 @@ d3.select("#upload").on("click",function(){
                 d.targetArr=[graph.nodes[d.target]];
             }); 
         radiusScale.domain([1,numNodes])
-            .range([5,40]);
+            .range([8,80]);
+
+        linkScale.domain([1,numNodes]).range([75,400]);
+
+        chargeScale.domain([1,numNodes]).range([-1000,-10]);
 
         //Update Slider Scales to reflect actual user data    
         x.domain([0,numPartitions-1]); 
@@ -210,8 +195,8 @@ d3.select("#upload").on("click",function(){
                 .tickPadding(12);
         svgPSlide.selectAll(".x.axis").call(partAxis);     //update partition axis svg
         svgCSlide.selectAll(".x.axis").call(colAxis);      //update color axis svg
-
-        update();
+        //update();
+        setBasePies();
         });
     });
 });
@@ -221,11 +206,25 @@ d3.select("#upload").on("click",function(){
 
 /******    UPDATE!    ******/
 function update(){
+   // if (first){
+   //      first=false;
+   //      console.log('first');
+   //      setBasePies();
+   //  };
+
     var circleData = graph.nodes.filter(function(d) {return d.collapsed==0; });
     var visiblePieData = pieData.filter(function(d) {return d.collapsed==0; });
     var visibleLinks = graph.links.filter(function(d) {return d.collapsed==0; });   
     var allNodes = circleData.concat(visiblePieData);   
 
+     //Find largest current pie size:
+    var radii =[];
+    visiblePieData.forEach(function(d,i){
+        radii[i]=d.size;
+    });
+    force.linkDistance(linkScale(d3.max(radii))) //adjust link length based on num nodes/pies visible
+         .charge(chargeScale(d3.max(radii)));
+         //.charge(function(d) { return chargeScale(d.size); }) ;
     //TODO: Hover over node to reveal name/info
 
     //freeze button
@@ -392,8 +391,8 @@ function update(){
           }})
         .on("mouseup", function(d) {
           if (d.selected && shiftKey) d3.select(this).classed("selected", d.selected = 0);
-          })
-        .attr("r", 5)
+        })
+        .attr("r", 8)
         .on("dblclick",unfreeze)
         .style("fill", function(d) { return color(d.group[col_value]); }) //color nodes based on group
         .call(force.drag);
@@ -482,7 +481,6 @@ function update(){
 };
 
 function setBasePies(){
-    //TODO: Community Slider Functionality
 
     // This function called when partition slider is moved
     // Make new pies just using that particular partition
