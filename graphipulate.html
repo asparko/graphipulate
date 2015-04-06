@@ -74,7 +74,7 @@ var force = d3.layout.force()
     .on("tick",tick)
     .charge(-800)
     .gravity(0.55)
-    //.friction(0.7)
+    .friction(0.1)
     .linkDistance(100)
     .linkStrength(0.3)
     .size([width, height]);
@@ -172,7 +172,7 @@ d3.select("#upload").on("click",function(){
         radiusScale.domain([1,numNodes])
             .range([8,80]);
 
-        linkScale.domain([1,numNodes]).range([75,400]);
+        linkScale.domain([1,numNodes]).range([175,400]);
 
         chargeScale.domain([1,numNodes]).range([-1000,-10]);
 
@@ -440,9 +440,11 @@ function update(){
             });
 
     pies2.enter().append("path")
+            //.attr("d",arc.innerRadius(1),arc.outerRadius(10)) //add these two lines if you want pies to slowly appear
+            //.transition().duration(1500)
             .attr("d",
                 arc.innerRadius(function(){                     
-                    return getRadius(this)/4;
+                    return getRadius(this)/8;
                 }),
                 arc.outerRadius(function(){                     
                     return getRadius(this);
@@ -626,6 +628,8 @@ function expand(d){
     });
 
 	var thisPie = d.name;
+    var pieX = d.x;
+    var pieY = d.y;
 	var insideNodes = graph.nodes.filter(function(d) {return d.inPie==thisPie; });
     var insidePies = pieData.filter(function(d) {return d.inPie==thisPie; });
 	var insideLinks = graph.links.filter(function(d) {return d.inPie==thisPie; });
@@ -634,12 +638,16 @@ function expand(d){
 		d.collapsed = 0;
 		d.inPie = -1;
         d.selected = 1;                                     //so recently expanded nodes will be selected
+        d.x = pieX;                                         //set all nodes inside this pie to have the coordinates of this pie
+        d.y = pieY;
 	});
 
     insidePies.forEach(function(d){
         d.collapsed = 0;
         d.inPie = -1;
         d.selected = 1;                                     //so recently expanded pies will be selected
+        d.x = pieX;                                         //set all nodes inside this pie to have the coordinates of this pie
+        d.y = pieY;
     });
 
 	insideLinks.forEach(function(d){
