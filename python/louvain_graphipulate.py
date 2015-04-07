@@ -10,9 +10,8 @@ from igraph import *
 # G = igraph.Graph.Erdos_Renyi(n=nNodes, m=nEdges)
 
 G = Graph.Read_GraphML("karate.GraphML")    #igraph version of data for partitioning
-K = nx.read_graphml("karate.GraphML")       #networkx version of data for json-ing
-print G.vs
 
+K = nx.read_graphml("karate.GraphML")       #networkx version of data for json-ing
 
 # initialize all nodes to have empty group array
 for n in K.nodes():
@@ -46,14 +45,26 @@ for res_par in parameters:
         #print "mem", mem      
 
         # add group data to networkx graph structure
-        for idx,n in enumerate(K.nodes()):
+        for i,n in enumerate(K.nodes()):
+            #print n
+            idx = G.vs.select(id=n)[0].index
+            #print idx
             K.node[n]['group'].append(mem[idx])
-
+            #print K.node[n]
+        
         old_partition = copy.deepcopy(partition)
         partition = louvain.find_partition(graph=G, method='RBConfiguration', initial_membership=mem, resolution_parameter=res_par)
 
         print "res param", res_par        
         print "partition size", len(partition) 
+
+# for idx,n in enumerate(K.nodes()):
+#     print "bla", n, G.vs.select(id=n)[0].index
+#     K.node[n]['group'].append(mem[idx])
+# G.vs.select(id_eq=n)[0].index
+# G.vs.select(id=n)[0].index
+
+
 
 
 # Turn networkx graph into a json:
