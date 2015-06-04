@@ -1,9 +1,10 @@
 //Use this to position and size the slider svg
 
 var margin = {top: 5, right: 5, bottom: 5, left: 50},
-    width = 610 - margin.left - margin.right,
-    height = 40 - margin.bottom - margin.top;
+    width = 600 - margin.left - margin.right,
+    height = 50 - margin.bottom - margin.top;
 
+//Color scale
 var x_col = d3.scale.linear()
     .domain([0, 10])
     .range([10, width-10])
@@ -17,11 +18,18 @@ var color_brush = d3.svg.brush()
 
 var col_value;
 
-var svgCSlide = d3.select("body").append("svg")
+var svgCSlide = d3.select("#sliders").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
   .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    .attr("transform", "translate(0," + margin.top + ")");
+
+svgCSlide.append("text")
+    .attr("class", "input")
+    .attr("x", 5)
+    .attr("y", 5)
+    .attr("fill","#c9c9c9")
+    .text("Color Resolution");
 
 svgCSlide.append("g")
     .attr("class", "x axis")

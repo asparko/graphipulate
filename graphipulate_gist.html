@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-
+ 
 <!-- ********   STYLES  ********* -->
 <link rel="stylesheet" href="css/sliderScript.css" />  
 <link rel="stylesheet" href="css/graphipulate.css" /> 
-
-
+ 
+ 
 <!-- ********   MAIN DOCUMENT BODY  ********* -->
 <body>
-
-
+ 
+ 
+<!-- <svg height = "20" width = "50"/>  -->   <!-- to create vertical spacing -->
+ 
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <script src="http://d3js.org/colorbrewer.v1.min.js"></script>
 
     <!-- FILE UPLOAD  -->
     <div align = "middle" style="width: 100%; overflow: hidden;" id = "data">
@@ -20,56 +24,56 @@
 
     <div align="middle" style="width: 100%; margin-top:10px; margin-bottom:10px">
         <a id="upload" class="myButton">upload</a>
-    </div>
-
-    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
-    <script src="http://d3js.org/colorbrewer.v1.min.js"></script>
-    
-    <!-- SLIDERS -->
+    </div> 
+ 
     <script>
         var fileEntered = 0;
     </script>   <!-- initializes variable needed by sliders -->
-
+ 
     <script src="js/colorSlider.js"></script>   <!-- sets col_value variable -->
     <script src="js/partSlider.js"></script>    <!-- sets part_value variable -->
-
+ 
     <div align="middle" style="width: 100%; overflow: hidden;" id = "labels">   <!-- slider labels -->
-        <div style="width: 580px; float: left; margin-left:40px" class="input"> Color</div>
-        <div style="margin-left: 580px;" class="input"> Community</div>
+        <div style="width: 400px; float: left; margin-left:40px" class="input"> Color</div>
+        <div style="margin-left: 400px;" class="input"> Partition </div>
     </div>
-
+ 
     <svg height = "20" width = "50"/>    <!-- to create vertical spacing -->
-
-    <!-- BUTTONS -->
+ 
     <div align="middle">
         <a id="collapse" class="myButton">collapse</a>
         <a id="freeze" class="myButton">pin</a>
         <a id="unfreeze" class="myButton">un-pin</a>
     </div>
-
+ 
 <!--   *****************************************   GRAPHIPULATE SCRIPT   *****************************************   -->
 <script>
 
 /******    INITIALIZE SOME VARIABLES!    ******/
-var width = 1250,
-    height = 800,
+var width = 1200,
+    height = 600,
     shiftKey,
     graph;
 
 //built in D3 color palatte
 var color = d3.scale.category20b();
 
+// var colorPalette = ["#99B2CC","#3288bd","#9e0142","#f46d43","#abdda4","#dae892","#fdae61","#66c2a5","#d53e4f","#5e4fa2"];
+
+// var color = d3.scale.ordinal()
+//     .range(colorPalette);
+
 var radiusScale = d3.scale.log();
 var linkScale = d3.scale.log();
 var chargeScale = d3.scale.log();
 
 var force = d3.layout.force()
+    .charge(-1000)
+    .gravity(0.3)
     .on("tick",tick)
-    .charge(-800)
-    .gravity(0.55)
-    .friction(0.1)
-    .linkDistance(100)
-    .linkStrength(0.3)
+    .friction(0.7)
+    //.linkDistance(100)
+    //.linkStrength(0.3)
     .size([width, height]);
 
 var arc = d3.svg.arc();
@@ -112,112 +116,119 @@ var link,
     piesToUnfreeze = [],
     toUnfreeze = [],
 
-    basePieData = [];                       //Pies created by moving parition slider
+    basePieData = [];                     //Pies created by moving parition slider
     pieData = [],                           //Pies from collapse
-	pieNames = [],                          //easily searchable array of pieNames that will match the ordering of pieData for easy deletion of pies
+	pieNames = [], //easily searchable array of pieNames that will match the ordering of pieData for easy deletion of pies
     
     insideLinks = [],
-    interLinks = [],
+    interLinks = [];
 
-    first=true;
+    //user defined data file
+    d3.select("#upload").on("click",function(){
+        fileEntered=1;
+        d3.select("#data").call(function(){
+            var filename = document.jsonform.elements["file"].value;        
+            d3.json(filename.toString(), function(error, json) { 
+            //d3.json("karate_rb.js", function(error, json) {
+                graph = json;                                   //give data a global variable name so can use it in update()
+                numNodes = graph.nodes.length;                  //total number of nodes
+                numPartitions = graph.nodes[0].group.length;    //num different partitions
 
-
-//user defined data file
-d3.select("#upload").on("click",function(){
-    fileEntered=1;
-    d3.select("#data").call(function(){
-        var filename = document.jsonform.elements["file"].value;        
-        d3.json(filename.toString(), function(error, json) {
-            graph = json;                                   //give data a global variable name so can use it in update()
-            numNodes = graph.nodes.length;                  //total number of nodes
-            numPartitions = graph.nodes[0].group.length;    //num different partitions
-
-            for (var i = 0; i < numPartitions; i++) {       //make communities a 2d array
-                communities[i]=[];
-            };
-            
-            pieData=[];                                     //delete any previous pies
-            numberPies=0;
-            currPieName =0;
-
-            graph.nodes.forEach(function(d) { 
-                d.collapsed=0; 
-                d.selected=0;
-                d.previouslySelected=0;
-                d.inPie=-1;
-                //loop through numPartitions times, on i^th time, push d.group[0] onto communties[i] stack
-                for (var i = 0; i < numPartitions; i++) {
-                    communities[i].push(d.group[i]);
+                for (var i = 0; i < numPartitions; i++) {       //make communities a 2d array
+                    communities[i]=[];
                 };
-            }); 
-            
-            for (var i = 0; i < communities.length; i++) {
-                numCommunities[i] = d3.max(communities[i])+1;
-            };
+                
+                pieData=[];                                     //delete any previous pies
+                pieNames=[];
+                numberPies=0;
+                currPieName =0;
 
-            graph.links.forEach(function(d) { 
-                d.collapsed=0; 
-                d.selected=0;
-                d.inPie=-1;
-                d.sourceArr=[graph.nodes[d.source]];     //create stacks for hierarchical sources and targets
-                d.targetArr=[graph.nodes[d.target]];
-            }); 
-        radiusScale.domain([1,numNodes])
-            .range([8,80]);
+                //Create a communities array for each node
+                graph.nodes.forEach(function(d) { 
+                    d.collapsed=0; 
+                    d.selected=0;
+                    d.previouslySelected=0;
+                    d.inPie=-1;
+                    //loop through numPartitions times, on i^th time, push d.group[i] onto communties[i] stack
+                    for (var i = 0; i < numPartitions; i++) {
+                        communities[i].push(d.group[i]);
+                    };
+                }); 
+                
+                //Create array counting number of communities in each partition
+                for (var i = 0; i < communities.length; i++) {
+                    numCommunities[i] = d3.max(communities[i])+1;
+                };
 
-        linkScale.domain([1,numNodes]).range([175,400]);
+                graph.links.forEach(function(d) { 
+                    d.collapsed=0; 
+                    d.selected=0;
+                    d.inPie=-1;
+                    d.sourceArr=[graph.nodes[d.source]];     //create stacks for hierarchical sources and targets
+                    d.source = d.sourceArr[0];
+                    d.targetArr=[graph.nodes[d.target]];
+                    d.target = d.targetArr[0];
+                }); 
 
-        chargeScale.domain([1,numNodes]).range([-1000,-10]);
+                // ************      SCALES     **************//
+                //Create variable scales based on size of data
+                radiusScale.domain([1,numNodes])
+                    .range([8,80]);
 
-        //Update Slider Scales to reflect actual user data    
-        x.domain([0,numPartitions-1]); 
-        x_col.domain([0,numPartitions-1]);    
-        var partAxis = d3.svg.axis()
-                .ticks(numPartitions-1)
-                .scale(x)
-                .orient("bottom")
-                .tickFormat(function(d) { return d; })
-                .tickSize(0)
-                .tickPadding(12);
-        var colAxis = d3.svg.axis()
-                .ticks(numPartitions-1)
-                .scale(x_col)
-                .orient("bottom")
-                .tickFormat(function(d) { return d; })
-                .tickSize(0)
-                .tickPadding(12);
-        svgPSlide.selectAll(".x.axis").call(partAxis);     //update partition axis svg
-        svgCSlide.selectAll(".x.axis").call(colAxis);      //update color axis svg
-        //update();
-        setBasePies();
+                linkScale.domain([1,numNodes]).range([50,200]);
+
+                chargeScale.domain([1,numNodes]).range([-2000,-1000]);
+
+                //Update Slider Scales to reflect actual user data    
+                x.domain([0,numPartitions-1]); 
+                x_col.domain([0,numPartitions-1]);    
+                var partAxis = d3.svg.axis()
+                        .ticks(numPartitions-1)
+                        .scale(x)
+                        .orient("bottom")
+                        .tickFormat(function(d) { return d; })
+                        .tickSize(0)
+                        .tickPadding(12);
+                var colAxis = d3.svg.axis()
+                        .ticks(numPartitions-1)
+                        .scale(x_col)
+                        .orient("bottom")
+                        .tickFormat(function(d) { return d; })
+                        .tickSize(0)
+                        .tickPadding(12);
+                svgPSlide.selectAll(".x.axis").call(partAxis);     //update partition axis svg
+                svgCSlide.selectAll(".x.axis").call(colAxis);      //update color axis svg
+                setBasePies();
+                //update();
+            });
         });
     });
-});
-
 
 
 
 /******    UPDATE!    ******/
 function update(){
-   // if (first){
-   //      first=false;
-   //      console.log('first');
-   //      setBasePies();
-   //  };
-
     var circleData = graph.nodes.filter(function(d) {return d.collapsed==0; });
     var visiblePieData = pieData.filter(function(d) {return d.collapsed==0; });
     var visibleLinks = graph.links.filter(function(d) {return d.collapsed==0; });   
     var allNodes = circleData.concat(visiblePieData);   
 
-     //Find largest current pie size:
+    //Find largest current pie size:
     var radii =[];
     visiblePieData.forEach(function(d,i){
         radii[i]=d.size;
     });
-    force.linkDistance(linkScale(d3.max(radii))) //adjust link length based on num nodes/pies visible
-         .charge(chargeScale(d3.max(radii)));
-         //.charge(function(d) { return chargeScale(d.size); }) ;
+   
+    //If there is a pie, use its size to set link properties   
+    if (radii.length==0) {
+        force.linkDistance(linkScale(1))
+            .charge(chargeScale(1));
+    } else{
+        force.linkDistance(linkScale(d3.max(radii))) //adjust link length based on size of pies visible
+            .charge(chargeScale(d3.max(radii)));
+    };
+    
+
     //TODO: Hover over node to reveal name/info
 
     //freeze button
@@ -348,7 +359,7 @@ function update(){
     //UPDATE LINKS *****************************************************
     link = svg.selectAll(".link")
         .data(visibleLinks)
-        .style("stroke-width", function(d) { return Math.sqrt(d.value); });
+        .style("stroke-width", function(d) { return 3*Math.sqrt(d.value); });
 
     //enter new links
     link.enter().insert("line",".uncollapsed") //insert before any ".uncollapsed" elements
@@ -384,7 +395,7 @@ function update(){
           }})
         .on("mouseup", function(d) {
           if (d.selected && shiftKey) d3.select(this).classed("selected", d.selected = 0);
-        })
+          })
         .attr("r", 8)
         .on("dblclick",unfreeze)
         .style("fill", function(d) { return color(d.group[col_value]); }) //color nodes based on group
@@ -433,8 +444,6 @@ function update(){
             });
 
     pies2.enter().append("path")
-            //.attr("d",arc.innerRadius(1),arc.outerRadius(10)) //add these two lines if you want pies to slowly appear
-            //.transition().duration(1500)
             .attr("d",
                 arc.innerRadius(function(){                     
                     return getRadius(this)/8;

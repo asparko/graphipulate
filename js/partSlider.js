@@ -1,7 +1,7 @@
 //Position and size the slider svg
 var margin = {top: 5, right: 50, bottom: 5, left: 5},
-    width = 610 - margin.left - margin.right,
-    height = 40 - margin.bottom - margin.top;
+    width = 600 - margin.left - margin.right,
+    height = 50 - margin.bottom - margin.top;
 
 var x = d3.scale.linear()
     .domain([0, 10])              //default to 10 partitions. update when file entered by user.
@@ -16,11 +16,18 @@ var community_brush = d3.svg.brush()
     .on("brush", brushed)         //this function moves the handle to the appropriate location as the user moves it
     .on("brushend", output);      //this just outputs the final position of the handle
 
-var svgPSlide = d3.select("body").append("svg")
+var svgPSlide = d3.select("#sliders").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
   .append("g")
-    .attr("transform", "translate(" + 45 + "," + margin.top + ")");
+    .attr("transform", "translate(" + margin.right + "," + margin.top + ")");
+
+svgPSlide.append("text")
+    .attr("class", "input")
+    .attr("x", 5)
+    .attr("y", 5)
+    .attr("fill","#c9c9c9")
+    .text("Partition Resolution");
 
 svgPSlide.append("g")
     .attr("class", "x axis")
@@ -65,8 +72,7 @@ function brushed() {
 function output() {
   part_value = community_brush.extent()[0];
   part_value = Math.round(part_value);
-  if (fileEntered ==1){                   //TODO: Check if this is necessary. Should we not allow for the default file?
-    //update();
+  if (fileEntered ==1){                   
     setBasePies();
   };
 }

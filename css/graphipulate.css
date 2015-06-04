@@ -1,14 +1,16 @@
 .circles {
   stroke: #fff;
-  stroke-width: 1.5px;
+  stroke-width: .2px;
 }
 
 .circles .selected {
   stroke: black;
+  stroke-width: 1.5px;
 }
 
 .collapsed {
-  stroke: white;  
+  stroke: white; 
+  stroke-width: 1px; 
 }
 
 .collapsed .selected{
